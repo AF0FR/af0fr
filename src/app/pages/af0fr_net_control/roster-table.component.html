@@ -1,0 +1,182 @@
+<div class="rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow">
+    <div class="mb-4 flex items-center justify-between gap-3">
+        <h2 class="text-lg font-semibold text-white">Roster</h2>
+        <div class="text-sm text-slate-300">{{ roster.length }} people</div>
+    </div>
+
+    <div #scrollBody class="max-h-[32rem] overflow-y-auto rounded-xl border border-slate-700">
+        <table class="w-full table-fixed border-collapse text-left text-sm">
+            <thead class="sticky top-0 z-10 bg-slate-950 text-xs uppercase tracking-wide text-slate-300">
+            <tr>
+                <th class="w-[40%] px-3 py-2 font-semibold md:w-[13%]">
+                    Callsign
+                </th>
+
+                <th class="hidden w-[24%] px-3 py-2 font-semibold md:table-cell">
+                    Name
+                </th>
+
+                <th class="hidden w-[18%] px-3 py-2 font-semibold md:table-cell">
+                    City
+                </th>
+
+                <th class="hidden w-[10%] px-3 py-2 text-right font-semibold lg:table-cell">
+                    Distance
+                </th>
+
+                <th class="hidden w-[14%] px-3 py-2 font-semibold md:table-cell">
+                    Club status
+                </th>
+
+                <th class="w-[60%] px-3 py-2 text-right font-semibold md:w-[21%]">
+                    {{ editing ? 'Actions' : 'Check-in' }}
+                </th>
+            </tr>
+            </thead>
+
+            <tbody class="divide-y divide-slate-700">
+            <tr
+                    *ngFor="let member of displayRoster; trackBy: trackByMemberId"
+                    class="bg-slate-800 text-slate-100 transition-colors"
+                    [class.bg-orange-950]="member.id === highlightedMemberId"
+                    [class.outline]="member.id === highlightedMemberId"
+                    [class.outline-2]="member.id === highlightedMemberId"
+                    [class.outline-orange-400]="member.id === highlightedMemberId"
+                    [attr.data-member-id]="member.id"
+            >
+                <td class="px-3 py-2">
+                    <input
+                            *ngIf="editing; else callsignText"
+                            #callsignBox
+                            class="w-full rounded border border-slate-600 bg-slate-900 px-2 py-1 font-semibold text-white"
+                            [value]="draftValue(member, 'callsign')"
+                            placeholder="No call"
+                            (input)="updateDraft(member, 'callsign', callsignBox.value)"
+                            (blur)="commitDraft(member)"
+                            (keydown.enter)="commitDraft(member); callsignBox.blur()"
+                    />
+
+                    <ng-template #callsignText>
+                        <div class="truncate font-semibold">
+                            {{ member.callsign || 'No call' }}
+                        </div>
+
+                        <div class="mt-0.5 text-xs text-slate-400 md:hidden">
+                            <ng-container *ngIf="member.city">
+                                {{ member.city }}
+                            </ng-container>
+
+                            <ng-container *ngIf="member.distanceMiles !== undefined">
+                                <ng-container *ngIf="member.city"> · </ng-container>
+                                {{ member.distanceMiles }} mi
+                            </ng-container>
+                        </div>
+                    </ng-template>
+                </td>
+
+                <td class="hidden px-3 py-2 md:table-cell">
+                    <input
+                            *ngIf="editing; else nameText"
+                            #nameBox
+                            class="w-full rounded border border-slate-600 bg-slate-900 px-2 py-1 text-white"
+                            [value]="draftValue(member, 'name')"
+                            (input)="updateDraft(member, 'name', nameBox.value)"
+                            (blur)="commitDraft(member)"
+                            (keydown.enter)="commitDraft(member); nameBox.blur()"
+                    />
+
+                    <ng-template #nameText>
+                        <div class="truncate">{{ member.name }}</div>
+                    </ng-template>
+                </td>
+
+                <td class="hidden px-3 py-2 md:table-cell">
+                    <input
+                            *ngIf="editing; else cityText"
+                            #cityBox
+                            class="w-full rounded border border-slate-600 bg-slate-900 px-2 py-1 text-white"
+                            [value]="draftValue(member, 'city')"
+                            (input)="updateDraft(member, 'city', cityBox.value)"
+                            (blur)="commitDraft(member)"
+                            (keydown.enter)="commitDraft(member); cityBox.blur()"
+                    />
+
+                    <ng-template #cityText>
+                        <div class="truncate">{{ member.city || '' }}</div>
+                    </ng-template>
+                </td>
+
+                <td class="hidden px-3 py-2 text-right tabular-nums text-slate-300 lg:table-cell">
+                    <ng-container *ngIf="member.distanceMiles !== undefined; else unknownDistance">
+                        {{ member.distanceMiles }} mi
+                    </ng-container>
+
+                    <ng-template #unknownDistance>
+                        —
+                    </ng-template>
+                </td>
+
+                <td class="hidden px-3 py-2 md:table-cell">
+                    <select
+                            *ngIf="editing; else statusText"
+                            class="w-full rounded border border-slate-600 bg-slate-900 px-2 py-1 text-white"
+                            [ngModel]="member.status"
+                            (ngModelChange)="updateMember(member, { status: $event })"
+                    >
+                        <option value="member">Member</option>
+                        <option value="visitor">Visitor</option>
+                        <option value="unknown">Unknown</option>
+                    </select>
+
+                    <ng-template #statusText>
+                        <span
+                                class="rounded-full px-2 py-1 text-xs font-semibold"
+                                [ngClass]="statusClass(member.status)"
+                        >
+                            {{ statusLabel(member.status) }}
+                        </span>
+                    </ng-template>
+                </td>
+
+                <td class="px-3 py-2">
+                    <div *ngIf="!editing; else editActions" class="flex justify-end gap-2">
+                        <button
+                                type="button"
+                                class="rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                (click)="checkIn.emit({ member, trafficType: 'shortTime' })"
+                                [disabled]="isCheckedIn(member)"
+                        >
+                            Short
+                        </button>
+
+                        <button
+                                type="button"
+                                class="rounded-lg bg-orange-500 px-2.5 py-1 text-xs font-semibold text-white hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-50"
+                                (click)="checkIn.emit({ member, trafficType: 'regular' })"
+                                [disabled]="isCheckedIn(member)"
+                        >
+                            Regular
+                        </button>
+                    </div>
+
+                    <ng-template #editActions>
+                        <div class="flex justify-end">
+                            <button
+                                    type="button"
+                                    class="rounded-lg px-2.5 py-1 text-xs font-semibold text-white disabled:cursor-wait disabled:opacity-75"
+                                    [ngClass]="pendingRemoveMemberId === member.id || removingMemberId === member.id
+                                        ? 'bg-rose-600 hover:bg-rose-500'
+                                        : 'bg-slate-700 hover:bg-slate-600'"
+                                    (click)="memberRemove.emit(member)"
+                                    [disabled]="!!removingMemberId"
+                            >
+                                {{ removeButtonLabel(member) }}
+                            </button>
+                        </div>
+                    </ng-template>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

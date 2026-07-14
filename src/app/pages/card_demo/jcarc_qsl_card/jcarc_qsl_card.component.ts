@@ -1,0 +1,219 @@
+import { CommonModule } from '@angular/common';
+import {Component, OnInit} from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { LucideDownload } from '@lucide/angular';
+import * as htmlToImage from 'html-to-image';
+
+interface QslCardForm {
+    txCallSign: string;
+    rxCallSign: string;
+    operator: string;
+    gridSquare: string;
+    qth: string;
+    powerRig: string;
+    dateUtc: string;
+    timeUtc: string;
+    band: string;
+    mhz: string;
+    mode: string;
+    rstSent: string;
+    rstReceived: string;
+    remarks: string;
+}
+
+interface Repeater {
+    band: string;
+    frequency: string;
+    offset: string;
+    tone: string;
+    details: string;
+}
+
+@Component({
+    selector: 'jcarc-qsl-card',
+    standalone: true,
+    imports: [CommonModule, FormsModule, LucideDownload],
+    templateUrl: './jcarc_qsl_card.component.html',
+})
+export class JCARCQSLCard implements OnInit {
+    ngOnInit(): void {
+        const utc = this.getCurrentUtc();
+
+        this.form = {
+            ...this.form,
+            dateUtc: this.form.dateUtc || utc.date,
+            timeUtc: this.form.timeUtc || utc.time,
+        };
+    }
+
+    jcarcRepeaters: Repeater[] = [
+        {
+            band: 'VHF FM / EchoLink',
+            frequency: '147.075 MHz',
+            offset: '+0.6 MHz',
+            tone: '141.3 Hz',
+            details: 'KBØTLL · North of Hillsboro · EchoLink',
+        },
+        {
+            band: 'VHF C4FM Wires-X',
+            frequency: '147.105 MHz',
+            offset: '+0.6 MHz',
+            tone: 'None',
+            details: 'House Springs 911 Tower · Room 61689',
+        },
+        {
+            band: 'UHF FM',
+            frequency: '442.425 MHz',
+            offset: '+5 MHz',
+            tone: '141.3 Hz',
+            details: 'North of Hillsboro · Active 2024',
+        },
+        {
+            band: 'VHF FM (Buck Knob)',
+            frequency: '146.775 MHz',
+            offset: '+600 kHz',
+            tone: '100.0 Hz',
+            details: 'Crystal City · KDØRIS · Wires-X local',
+        },
+        {
+            band: '6 Meter FM',
+            frequency: '52.950 MHz',
+            offset: '-1.7 MHz',
+            tone: '192.8 Hz',
+            details: 'TX Arnold · RX Barnhart',
+        },
+    ];
+
+    isEditorOpen = false;
+
+    form: QslCardForm = {
+        txCallSign: '',
+        rxCallSign: '',
+        operator: '',
+        gridSquare: '',
+        qth: '',
+        powerRig: '',
+        dateUtc: '',
+        timeUtc: '',
+        band: '',
+        mhz: '',
+        mode: '',
+        rstSent: '',
+        rstReceived: '',
+        remarks: '',
+    };
+
+    private getCurrentUtc(): { date: string; time: string } {
+        const now = new Date();
+
+        const date = now.toISOString().slice(0, 10);
+        const time = now.toISOString().slice(11, 16);
+
+        return { date, time };
+    }
+
+    setNowUtc(): void {
+        const utc = this.getCurrentUtc();
+        this.form.dateUtc = utc.date;
+        this.form.timeUtc = utc.time;
+    }
+
+    openEditor(): void {
+        this.isEditorOpen = true;
+        document.body.style.overflow = 'hidden';
+    }
+
+    closeEditor(): void {
+        this.isEditorOpen = false;
+        document.body.style.overflow = '';
+    }
+
+    private async waitForImages(container: HTMLElement): Promise<void> {
+        const images = Array.from(container.querySelectorAll('img'));
+
+        await Promise.all(
+            images.map(async (img) => {
+                if (img.complete && img.naturalWidth > 0) {
+                    if ('decode' in img) {
+                        try {
+                            await img.decode();
+                        } catch {}
+                    }
+                    return;
+                }
+
+                await new Promise<void>((resolve) => {
+                    const finish = () => resolve();
+                    img.addEventListener('load', finish, { once: true });
+                    img.addEventListener('error', finish, { once: true });
+                });
+
+                if ('decode' in img) {
+                    try {
+                        await img.decode();
+                    } catch {}
+                }
+            })
+        );
+    }
+
+    async downloadCard(): Promise<void> {
+        const node = document.getElementById('qsl-card-export-image');
+        if (!node) return;
+
+        try {
+            await this.waitForImages(node);
+            await new Promise((resolve) => setTimeout(resolve, 150));
+
+            const dataUrl = await htmlToImage.toPng(node, {
+                cacheBust: true,
+                backgroundColor: '#f8fafc',
+                pixelRatio: 2,
+                width: 1800,
+                height: 1200,
+                style: {
+                    width: '1800px',
+                    height: '1200px',
+                },
+            });
+
+            const response = await fetch(dataUrl);
+            const blob = await response.blob();
+            const file = new File([blob], 'jcarc-qsl-card-6x4.png', {
+                type: 'image/png',
+            });
+
+            if (
+                navigator.canShare &&
+                navigator.share &&
+                navigator.canShare({ files: [file] })
+            ) {
+                await navigator.share({
+                    files: [file],
+                    title: 'JCARC QSL Card',
+                });
+                return;
+            }
+
+            const objectUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = objectUrl;
+            link.download = 'jcarc-qsl-card-6x4.png';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+        } catch (error) {
+            console.error('Failed to download QSL card as PNG:', error);
+        }
+    }
+
+    get rstCombined(): string {
+        if (this.form.rstSent && this.form.rstReceived) {
+            return `${this.form.rstSent} / ${this.form.rstReceived}`;
+        }
+
+        return this.form.rstSent || this.form.rstReceived || '';
+    }
+}

@@ -1,0 +1,761 @@
+<section class="min-h-screen bg-orange-500 p-4 text-slate-950">
+    <div class="mx-auto max-w-7xl space-y-4">
+        <div class="rounded-2xl bg-white/90 p-4 shadow-xl">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="text-sm uppercase tracking-[0.32em] text-slate-600">
+                    Fox Hunt
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <div class="rounded-full bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-300">
+                        <span class="text-slate-500">Call sign</span>
+                        <span class="ml-1 font-black text-slate-950">{{ currentCallsign }}</span>
+                    </div>
+
+                    @if (!editingCallsign) {
+                        <button
+                                type="button"
+                                class="rounded-full bg-slate-950 px-4 py-2 text-xs font-bold text-white"
+                                (click)="changeCallsign()"
+                        >
+                            Edit
+                        </button>
+                    }
+                </div>
+
+                @if (editingCallsign) {
+                    <div class="flex w-full flex-wrap items-center gap-2">
+                        <input
+                                #callsignBox
+                                type="text"
+                                class="min-w-0 flex-1 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-black uppercase text-slate-950"
+                                [value]="callsignDraft"
+                                autocapitalize="characters"
+                                autocomplete="off"
+                                inputmode="text"
+                        />
+
+                        <button
+                                type="button"
+                                class="rounded-full bg-orange-500 px-5 py-2 text-sm font-semibold text-white"
+                                (click)="saveCallsign(callsignBox.value)"
+                        >
+                            Save
+                        </button>
+
+                        <button
+                                type="button"
+                                class="rounded-full bg-white px-5 py-2 text-sm font-semibold text-slate-950 ring-1 ring-slate-300"
+                                (click)="cancelCallsignEdit()"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="rounded-2xl bg-white/90 p-3 shadow-xl">
+            <div class="flex rounded-full bg-white p-1 ring-1 ring-slate-300">
+                <button
+                        type="button"
+                        class="flex-1 rounded-full px-4 py-2 text-xs font-bold"
+                        [class.bg-orange-500]="activeAzimuthView === 'reports'"
+                        [class.text-white]="activeAzimuthView === 'reports'"
+                        [class.text-slate-700]="activeAzimuthView !== 'reports'"
+                        (click)="setAzimuthView('reports')"
+                >
+                    Reports
+                </button>
+
+                <button
+                        type="button"
+                        class="flex-1 rounded-full px-4 py-2 text-xs font-bold"
+                        [class.bg-orange-500]="activeAzimuthView === 'map'"
+                        [class.text-white]="activeAzimuthView === 'map'"
+                        [class.text-slate-700]="activeAzimuthView !== 'map'"
+                        (click)="setAzimuthView('map')"
+                >
+                    Map
+                </button>
+            </div>
+        </div>
+
+        <div class="rounded-3xl bg-white/90 p-6 shadow-xl" [class.hidden]="activeAzimuthView !== 'reports'">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div class="text-sm uppercase tracking-[0.32em] text-slate-600">
+                    Signal Report
+                </div>
+            </div>
+
+            <div class="mt-4 grid min-w-0 grid-cols-1 gap-3 overflow-hidden lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,2fr)]">
+                <div class="grid min-w-0 grid-cols-2 gap-2 lg:col-span-1">
+                    <label class="block min-w-0 max-w-full overflow-hidden">
+                        <span class="text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+                            Date
+                        </span>
+                        <input
+                                #reportDateBox
+                                type="date"
+                                class="mt-1 block w-full min-w-0 max-w-full appearance-none box-border rounded-2xl border border-slate-300 bg-white px-3 py-3 text-base font-semibold text-slate-950"
+                                [value]="reportDate"
+                        />
+                    </label>
+
+                    <label class="block min-w-0 max-w-full overflow-hidden">
+                        <span class="text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+                            Time
+                        </span>
+                        <input
+                                #reportTimeBox
+                                type="time"
+                                class="mt-1 block w-full min-w-0 max-w-full appearance-none box-border rounded-2xl border border-slate-300 bg-white px-3 py-3 text-base font-semibold text-slate-950"
+                                [value]="reportTime"
+                        />
+                    </label>
+                </div>
+
+                <div class="flex items-end lg:pb-2">
+                    <button
+                            type="button"
+                            class="rounded-full bg-orange-500 px-5 py-2 text-sm font-semibold text-white ring-1 ring-orange-700"
+                            (click)="setReportTimeNow()"
+                    >
+                        Set Time Now
+                    </button>
+                </div>
+
+                <label class="block min-w-0 lg:col-span-3">
+                    <span class="text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+                        Repeater / Frequency
+                    </span>
+                    <span class="mt-1 flex flex-col gap-2 sm:flex-row">
+                        <select
+                                class="min-w-0 flex-1 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base font-semibold text-slate-950"
+                                [ngModel]="reportSourceValue"
+                                (ngModelChange)="setReportSource($event)"
+                        >
+                            @for (option of repeaterOptions; track option.value) {
+                                <option [value]="option.value">
+                                    {{ option.label }}
+                                </option>
+                            }
+                        </select>
+
+                        @if (!selectedSourceIsOther) {
+                            <button
+                                    type="button"
+                                    class="shrink-0 rounded-full px-4 py-2 text-sm font-semibold ring-1"
+                                    [class.bg-orange-500]="reportReverse"
+                                    [class.text-white]="reportReverse"
+                                    [class.ring-orange-700]="reportReverse"
+                                    [class.bg-white]="!reportReverse"
+                                    [class.text-slate-950]="!reportReverse"
+                                    [class.ring-slate-300]="!reportReverse"
+                                    (click)="reportReverse = !reportReverse"
+                            >
+                                Reverse
+                            </button>
+                        }
+                    </span>
+                </label>
+            </div>
+
+            @if (selectedSourceIsOther) {
+                <div class="mt-3">
+                    <label class="block">
+                        <span class="text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+                            Other Frequency
+                        </span>
+                        <input
+                                type="text"
+                                class="mt-1 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-950"
+                                [value]="customFrequencyMhz"
+                                (input)="customFrequencyMhz = $any($event.target).value"
+                                placeholder="Example: 146.520"
+                                inputmode="decimal"
+                        />
+                    </label>
+                </div>
+            }
+
+            <div class="mt-3">
+                <label class="block">
+                    <span class="text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+                        Notes
+                    </span>
+                    <textarea
+                            #reportNotesBox
+                            class="mt-1 min-h-24 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-950"
+                            [value]="reportNotes"
+                            placeholder="Optional notes about the signal, audio, strength, or location."
+                    ></textarea>
+                </label>
+            </div>
+
+            <div class="mt-4 flex flex-wrap items-center gap-3">
+                <button
+                        type="button"
+                        class="rounded-full bg-orange-500 px-5 py-2 text-sm font-semibold text-white ring-1 ring-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        [disabled]="isSavingReport"
+                        (click)="saveSignalReport(reportDateBox.value, reportTimeBox.value, reportSourceValue, customFrequencyMhz, reportNotesBox.value)"
+                >
+                    {{ isSavingReport ? 'Saving...' : 'Save Report' }}
+                </button>
+            </div>
+
+            @if (reports.length > 0) {
+                <div class="mt-5">
+                    <div class="text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+                        Reports
+                    </div>
+
+                    <div class="mt-3 overflow-hidden rounded-lg bg-white ring-1 ring-slate-200">
+                        <div class="grid grid-cols-[3.25rem_minmax(4.5rem,1.2fr)_minmax(0,0.9fr)_3rem] gap-x-3 bg-slate-50 px-3 py-2 text-left text-xs font-black uppercase tracking-[0.14em] text-slate-500">
+                            <div class="truncate">#</div>
+                            <div class="truncate">Callsign</div>
+                            <div class="truncate">Source</div>
+                            <div class="truncate text-right">More</div>
+                        </div>
+                        @for (report of reports; track report.id) {
+                            <div
+                                    class="border-t border-slate-200 px-3 py-2 text-sm transition-colors duration-300"
+                                    [class.bg-orange-100]="highlightedReportId === report.id"
+                            >
+                                <details>
+                                    <summary class="grid cursor-pointer list-none grid-cols-[3.25rem_minmax(4.5rem,1.2fr)_minmax(0,0.9fr)_3rem] items-center gap-x-3">
+                                        <span class="whitespace-nowrap font-black text-slate-950">
+                                            {{ getReportDisplayNumber(report) }}
+                                        </span>
+                                        <span class="min-w-0 truncate font-bold text-slate-950">
+                                            {{ report.callsign }}
+                                        </span>
+                                        <span class="min-w-0 truncate text-slate-700">
+                                            {{ report.sourceLabel }}
+                                        </span>
+                                        <span class="whitespace-nowrap text-right text-xs font-bold text-slate-500">
+                                            More
+                                        </span>
+                                    </summary>
+
+                                    <div class="mt-3 grid gap-3 rounded bg-slate-50 p-3 text-xs text-slate-700 sm:grid-cols-2">
+                                        <div>
+                                            <div class="font-black uppercase tracking-[0.14em] text-slate-500">Date / Time</div>
+                                            <div class="mt-1 font-semibold">{{ formatReportDateTime(report) }}</div>
+                                        </div>
+
+                                        <div>
+                                            <div class="font-black uppercase tracking-[0.14em] text-slate-500">Frequency</div>
+                                            <div class="mt-1 font-semibold">{{ report.frequencyMhz }} MHz</div>
+                                        </div>
+
+                                        <div class="sm:col-span-2">
+                                            <div class="font-black uppercase tracking-[0.14em] text-slate-500">Notes</div>
+                                            @if (report.notes) {
+                                                <div class="mt-1 whitespace-pre-wrap leading-5">
+                                                    {{ report.notes }}
+                                                </div>
+                                            } @else {
+                                                <div class="mt-1 text-slate-400">None</div>
+                                            }
+                                        </div>
+
+                                        <div class="sm:col-span-2">
+                                            <div class="font-black uppercase tracking-[0.14em] text-slate-500">Linked Map Markers</div>
+                                            @if (getLinkedPointsForReport(report).length > 0 || getLinkedLinesForReport(report).length > 0) {
+                                                <div class="mt-2 flex flex-wrap gap-2">
+                                                    @for (linkedPoint of getLinkedPointsForReport(report); track linkedPoint.id) {
+                                                        <button
+                                                                type="button"
+                                                                class="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-700 ring-1 ring-slate-200"
+                                                                (click)="removePointReport(linkedPoint, report.id)"
+                                                        >
+                                                            Point #{{ getPointDisplayNumber(linkedPoint) }} ×
+                                                        </button>
+                                                    }
+
+                                                    @for (linkedLine of getLinkedLinesForReport(report); track linkedLine.id) {
+                                                        <button
+                                                                type="button"
+                                                                class="rounded-full bg-orange-50 px-3 py-1 text-xs font-bold text-orange-700 ring-1 ring-orange-200"
+                                                                (click)="removeLineReport(linkedLine, report.id)"
+                                                        >
+                                                            Azimuth #{{ getLineDisplayNumber(linkedLine) }} ×
+                                                        </button>
+                                                    }
+                                                </div>
+                                            } @else {
+                                                <div class="mt-1 text-slate-500">No map markers linked.</div>
+                                            }
+
+                                            @if (getUnlinkedPointsForReport(report).length > 0) {
+                                                <select
+                                                        class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-950"
+                                                        value=""
+                                                        (change)="addReportPointLink(report, $any($event.target).value); $any($event.target).value = ''"
+                                                >
+                                                    <option value="">Add point...</option>
+
+                                                    @for (point of getUnlinkedPointsForReport(report); track point.id) {
+                                                        <option [value]="point.id">
+                                                            Point #{{ getPointDisplayNumber(point) }} — {{ point.label }}
+                                                        </option>
+                                                    }
+                                                </select>
+                                            }
+
+                                            @if (getUnlinkedLinesForReport(report).length > 0) {
+                                                <select
+                                                        class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-950"
+                                                        value=""
+                                                        (change)="addReportLineLink(report, $any($event.target).value); $any($event.target).value = ''"
+                                                >
+                                                    <option value="">Add azimuth...</option>
+
+                                                    @for (line of getUnlinkedLinesForReport(report); track line.id) {
+                                                        <option [value]="line.id">
+                                                            Azimuth #{{ getLineDisplayNumber(line) }} — {{ line.label }}
+                                                        </option>
+                                                    }
+                                                </select>
+                                            }
+                                        </div>
+
+                                        @if (removalModeEnabled) {
+                                            <div class="sm:col-span-2">
+                                                <button
+                                                        type="button"
+                                                        class="rounded-full px-3 py-1 text-xs font-semibold text-white"
+                                                        [style.backgroundColor]="pendingDeleteReportId === report.id ? '#dc2626' : '#0f172a'"
+                                                        (click)="deleteReport(report)"
+                                                >
+                                                    {{ pendingDeleteReportId === report.id ? 'Confirm' : 'Remove' }}
+                                                </button>
+                                            </div>
+                                        }
+                                    </div>
+                                </details>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="overflow-hidden rounded-3xl bg-white p-2 shadow-xl" [class.hidden]="activeAzimuthView !== 'map'">
+            <div
+                    id="azimuth-map"
+                    class="w-full rounded-2xl"
+                    style="height: 70vh; min-height: 500px;"
+            ></div>
+
+            <div class="px-3 pt-3 text-center text-xs font-semibold text-slate-600">
+                {{ mapInstructionText }}
+            </div>
+
+            <div class="mt-4 flex flex-wrap justify-center gap-3">
+                <button
+                        type="button"
+                        class="rounded-full px-5 py-2 text-sm font-semibold text-white"
+                        [class.bg-slate-950]="!locationEnabled"
+                        [class.bg-blue-700]="locationEnabled"
+                        (click)="toggleLocation()"
+                >
+                    {{ locationEnabled ? 'Disable Location' : 'Enable Location' }}
+                </button>
+
+                <button
+                        type="button"
+                        class="rounded-full px-5 py-2 text-sm font-semibold text-white"
+                        [class.bg-slate-950]="!compassEnabled"
+                        [class.bg-red-700]="compassEnabled"
+                        (click)="toggleCompass()"
+                >
+                    {{ compassEnabled ? 'Disable Compass' : 'Enable Compass' }}
+                </button>
+
+                @if (compassEnabled === true) {
+                    <button
+                            type="button"
+                            class="rounded-full bg-orange-500 px-5 py-2 text-sm font-semibold text-white ring-1 ring-orange-700"
+                            (click)="lockCurrentAzimuth()"
+                    >
+                        Save Azimuth
+                    </button>
+                }
+
+                @if (headingDeg !== null) {
+                    <div class="rounded-full bg-white px-5 py-2 text-sm font-semibold text-slate-950 ring-1 ring-slate-300">
+                        Heading: {{ headingDeg.toFixed(0) }}°
+                    </div>
+                }
+
+                @if (hasPendingStartPoint) {
+                    <button
+                            type="button"
+                            class="rounded-full bg-white px-5 py-2 text-sm font-semibold text-slate-950 ring-1 ring-slate-300"
+                            (click)="cancelStartPoint()"
+                    >
+                        Cancel Start Point
+                    </button>
+                }
+
+                @if (canSavePendingStartAsPoint) {
+                    <button
+                            type="button"
+                            class="rounded-full bg-orange-500 px-5 py-2 text-sm font-semibold text-white ring-1 ring-orange-700"
+                            (click)="savePendingStartAsPoint()"
+                    >
+                        Set as Point
+                    </button>
+                }
+            </div>
+        </div>
+
+        <div class="rounded-3xl bg-white/90 p-6 shadow-xl" [class.hidden]="activeAzimuthView !== 'map'">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <div class="text-sm uppercase tracking-[0.32em] text-slate-600">
+                        Map Markers
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-3 overflow-hidden rounded-lg bg-white ring-1 ring-slate-200">
+                <div class="grid grid-cols-[minmax(0,1fr)_3rem] gap-x-3 bg-slate-50 px-3 py-2 text-left text-xs font-black uppercase tracking-[0.14em] text-slate-500 sm:grid-cols-[minmax(0,1fr)_3.75rem_6rem_3rem]">
+                    <div class="truncate">Callsign</div>
+                    <div class="hidden truncate text-right sm:block">Points</div>
+                    <div class="hidden truncate text-right sm:block">Azimuths</div>
+                    <div class="truncate text-right">More</div>
+                </div>
+                @for (group of callsignGroups; track group.callsign) {
+                    <div class="border-t border-slate-200 px-3 py-2 text-sm">
+                        <details>
+                            <summary class="grid cursor-pointer list-none grid-cols-[minmax(0,1fr)_3rem] items-center gap-x-3 sm:grid-cols-[minmax(0,1fr)_3.75rem_4.75rem_3rem]">
+                                <span class="flex min-w-0 items-center gap-2">
+                                    <span
+                                            class="h-3 w-3 shrink-0 rounded-full"
+                                            [style.backgroundColor]="group.color"
+                                    ></span>
+                                    <span class="min-w-0 truncate font-bold text-slate-950">
+                                        {{ group.callsign }}
+                                    </span>
+                                </span>
+
+                                <span class="hidden whitespace-nowrap text-right text-slate-700 sm:block">
+                                    {{ group.points.length }}
+                                </span>
+
+                                <span class="hidden whitespace-nowrap text-right text-slate-700 sm:block">
+                                    {{ group.lines.length }}
+                                </span>
+
+                                <span class="whitespace-nowrap text-right text-xs font-bold text-slate-500">
+                                    More
+                                </span>
+                            </summary>
+
+                            <div class="mt-3 divide-y divide-slate-200 rounded bg-slate-50 ring-1 ring-slate-200">
+                            @for (marker of group.markers; track getMarkerId(marker)) {
+                                <div
+                                        class="cursor-pointer p-4 text-sm transition"
+                                        [class.bg-orange-50]="isMarkerSelected(marker)"
+                                        [class.ring-2]="isMarkerSelected(marker)"
+                                        [class.ring-orange-500]="isMarkerSelected(marker)"
+                                        [class.ring-inset]="isMarkerSelected(marker)"
+                                        (click)="marker.kind === 'point' ? selectPoint(marker.point) : selectLine(marker.line)"
+                                >
+                                    @if (marker.kind === 'point') {
+                                        <div>
+                                            <div class="flex items-start justify-between gap-3">
+                                                <div>
+                                                    <div class="flex flex-wrap items-center gap-2">
+                                                        <span class="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-700 ring-1 ring-slate-300">
+                                                            POINT
+                                                        </span>
+
+                                                        <span class="font-bold text-slate-950">
+                                                            Point #{{ getPointDisplayNumber(marker.point) }} · {{ marker.point.label }}
+                                                        </span>
+                                                    </div>
+
+                                                    @if (selectedPointId === marker.point.id) {
+                                                        <div class="mt-1 text-xs font-bold uppercase tracking-[0.18em] text-orange-600">
+                                                            Selected
+                                                        </div>
+                                                    }
+                                                </div>
+
+                                                @if (removalModeEnabled) {
+                                                    <button
+                                                            type="button"
+                                                            class="rounded-full px-3 py-1 text-xs font-semibold text-white"
+                                                            [style.backgroundColor]="pendingDeletePointId === marker.point.id ? '#dc2626' : group.color"
+                                                            (click)="$event.stopPropagation(); deletePoint(marker.point)"
+                                                    >
+                                                        {{ pendingDeletePointId === marker.point.id ? 'Confirm' : 'Remove' }}
+                                                    </button>
+                                                }
+                                            </div>
+
+                                            <div class="mt-2 text-xs text-slate-500">
+                                                Location {{ marker.point.lat.toFixed(4) }}, {{ marker.point.lng.toFixed(4) }}
+                                            </div>
+
+                                            <div class="mt-2 text-xs font-semibold text-slate-600">
+                                                {{ getLinesForPoint(marker.point).length }} azimuth{{ getLinesForPoint(marker.point).length === 1 ? '' : 's' }} from this point
+                                            </div>
+
+                                            <div class="mt-3 flex flex-wrap gap-2">
+                                                <button
+                                                        type="button"
+                                                        class="rounded-full bg-orange-500 px-3 py-1 text-xs font-bold text-white ring-1 ring-orange-700"
+                                                        (click)="$event.stopPropagation(); addBearingFromPoint(marker.point)"
+                                                >
+                                                    Add Bearing From Point
+                                                </button>
+                                            </div>
+
+                                            <div class="mt-3" (click)="$event.stopPropagation()">
+                                                <div class="text-xs font-black uppercase tracking-[0.14em] text-slate-500">
+                                                    Linked Reports
+                                                </div>
+
+                                                @if (getLinkedReportsForPoint(marker.point).length > 0) {
+                                                    <div class="mt-2 flex flex-wrap gap-2">
+                                                        @for (report of getLinkedReportsForPoint(marker.point); track report.id) {
+                                                            <button
+                                                                    type="button"
+                                                                    class="whitespace-nowrap rounded-full bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700 ring-1 ring-slate-200"
+                                                                    (click)="removePointReport(marker.point, report.id)"
+                                                            >
+                                                                {{ getReportChipLabel(report) }} ×
+                                                            </button>
+                                                        }
+                                                    </div>
+                                                } @else {
+                                                    <div class="mt-2 text-xs text-slate-500">
+                                                        No reports linked.
+                                                    </div>
+                                                }
+
+                                                @if (getUnlinkedReportsForPoint(marker.point).length > 0) {
+                                                    <select
+                                                            class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-950"
+                                                            value=""
+                                                            (change)="addPointReport(marker.point, $any($event.target).value); $any($event.target).value = ''"
+                                                    >
+                                                        <option value="">Add report...</option>
+
+                                                        @for (report of getUnlinkedReportsForPoint(marker.point); track report.id) {
+                                                            <option [value]="report.id">
+                                                                Report #{{ getReportDisplayNumber(report) }} — {{ report.sourceLabel }} {{ report.frequencyMhz }} MHz — {{ report.reportTime }}
+                                                            </option>
+                                                        }
+                                                    </select>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+
+                                    @if (marker.kind === 'azimuth') {
+                                        <div>
+                                            <div class="flex items-start justify-between gap-3">
+                                                <div>
+                                                    <div class="flex flex-wrap items-center gap-2">
+                                                        <span class="rounded-full bg-orange-100 px-2 py-1 text-[10px] font-black text-orange-700 ring-1 ring-orange-300">
+                                                            AZIMUTH
+                                                        </span>
+
+                                                        <span class="font-bold text-slate-950">
+                                                            Azimuth #{{ getLineDisplayNumber(marker.line) }} · {{ marker.line.label }}
+                                                        </span>
+                                                    </div>
+
+                                                    @if (selectedLineId === marker.line.id) {
+                                                        <div class="mt-1 text-xs font-bold uppercase tracking-[0.18em] text-orange-600">
+                                                            Selected
+                                                        </div>
+                                                    }
+                                                </div>
+
+                                                @if (removalModeEnabled) {
+                                                    <button
+                                                            type="button"
+                                                            class="rounded-full px-3 py-1 text-xs font-semibold text-white"
+                                                            [style.backgroundColor]="pendingDeleteLineId === marker.line.id ? '#dc2626' : group.color"
+                                                            (click)="$event.stopPropagation(); deleteLine(marker.line)"
+                                                    >
+                                                        {{ pendingDeleteLineId === marker.line.id ? 'Confirm' : 'Remove' }}
+                                                    </button>
+                                                }
+                                            </div>
+
+                                            <div class="mt-2 flex flex-wrap items-center gap-2 text-slate-700">
+                                                <div
+                                                        class="flex min-w-0 items-center gap-1"
+                                                        (click)="$event.stopPropagation()"
+                                                >
+                                                    <span class="font-semibold">Bearing:</span>
+
+                                                    <button
+                                                            type="button"
+                                                            class="shrink-0 rounded-lg bg-slate-100 px-2 py-1 text-xs font-black text-slate-800 ring-1 ring-slate-300"
+                                                            (click)="nudgeLineBearing(marker.line, -1)"
+                                                    >
+                                                        ↓
+                                                    </button>
+
+                                                    <input
+                                                            type="number"
+                                                            class="min-w-0 w-24 rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-bold text-slate-950"
+                                                            [value]="marker.line.bearingDeg.toFixed(1)"
+                                                            min="0"
+                                                            max="359.9"
+                                                            step="0.1"
+                                                            inputmode="decimal"
+                                                            (change)="setLineBearing(marker.line, $any($event.target).value)"
+                                                            (keydown.enter)="setLineBearing(marker.line, $any($event.target).value)"
+                                                    />
+
+                                                    <button
+                                                            type="button"
+                                                            class="shrink-0 rounded-lg bg-slate-100 px-2 py-1 text-xs font-black text-slate-800 ring-1 ring-slate-300"
+                                                            (click)="nudgeLineBearing(marker.line, 1)"
+                                                    >
+                                                        ↑
+                                                    </button>
+
+                                                    <span class="text-xs font-bold text-slate-500">°</span>
+                                                </div>
+
+                                                <div>
+                                                    <span class="font-semibold">Distance:</span>
+                                                    {{ marker.line.distanceMiles.toFixed(2) }} mi
+                                                </div>
+                                            </div>
+
+                                            @if (marker.line.sourcePointId) {
+                                                <div class="mt-2 text-xs font-semibold text-slate-600">
+                                                    {{ getSourcePointSummary(marker.line.sourcePointId) }}
+                                                </div>
+                                            }
+
+                                            <div class="mt-3" (click)="$event.stopPropagation()">
+                                                <div class="text-xs font-black uppercase tracking-[0.14em] text-slate-500">
+                                                    Linked Reports
+                                                </div>
+
+                                                @if (getLinkedReportsForLine(marker.line).length > 0) {
+                                                    <div class="mt-2 flex flex-wrap gap-2">
+                                                        @for (report of getLinkedReportsForLine(marker.line); track report.id) {
+                                                            <button
+                                                                    type="button"
+                                                                    class="whitespace-nowrap rounded-full bg-orange-50 px-3 py-1 text-xs font-bold text-orange-700 ring-1 ring-orange-200"
+                                                                    (click)="removeLineReport(marker.line, report.id)"
+                                                            >
+                                                                {{ getReportChipLabel(report) }} ×
+                                                            </button>
+                                                        }
+                                                    </div>
+                                                } @else {
+                                                    <div class="mt-2 text-xs text-slate-500">
+                                                        No reports linked.
+                                                    </div>
+                                                }
+
+                                                @if (getUnlinkedReportsForLine(marker.line).length > 0) {
+                                                    <select
+                                                            class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-950"
+                                                            value=""
+                                                            (change)="addLineReport(marker.line, $any($event.target).value); $any($event.target).value = ''"
+                                                    >
+                                                        <option value="">Add report...</option>
+
+                                                        @for (report of getUnlinkedReportsForLine(marker.line); track report.id) {
+                                                            <option [value]="report.id">
+                                                                Report #{{ getReportDisplayNumber(report) }} — {{ report.sourceLabel }} {{ report.frequencyMhz }} MHz — {{ report.reportTime }}
+                                                            </option>
+                                                        }
+                                                    </select>
+                                                }
+                                            </div>
+
+                                            <div class="mt-2 text-xs text-slate-500">
+                                                From {{ marker.line.fromLat.toFixed(4) }}, {{ marker.line.fromLng.toFixed(4) }}
+                                                to {{ marker.line.toLat.toFixed(4) }}, {{ marker.line.toLng.toFixed(4) }}
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            </div>
+                        </details>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="rounded-3xl bg-white/90 p-6 shadow-xl" [class.hidden]="activeAzimuthView !== 'map'">
+            <div class="text-sm uppercase tracking-[0.32em] text-slate-600">
+                Helper
+            </div>
+
+            <div class="mt-3 rounded-2xl bg-white/70 px-4 py-3 text-[11px] font-semibold leading-5 text-slate-700 ring-1 ring-slate-200">
+                <div class="font-black text-[12px] text-slate-600">Modes</div>
+
+                <div class="grid grid-cols-[5.8rem_1fr] gap-x-2">
+                    <div class="font-black text-slate-950">Manual:</div>
+                    <div>Tap start point → Tap endpoint</div>
+
+                    <div class="font-black text-slate-950">Point:</div>
+                    <div>Tap start point → Set as Point</div>
+
+                    <div class="font-black text-slate-950">From Point:</div>
+                    <div>Point marker → Add Bearing → Tap endpoint</div>
+
+                    <div class="font-black text-slate-950">Compass:</div>
+                    <div>Enable → Tap start point → Save Azm.</div>
+
+                    <div class="font-black text-slate-950">Location:</div>
+                    <div>Enable → Tap endpoint</div>
+
+                    <div class="font-black text-slate-950">Comp+Loc:</div>
+                    <div>Enable → Save Azm.</div>
+                </div>
+            </div>
+
+            <div class="mt-4 flex flex-wrap gap-3">
+                <button
+                        type="button"
+                        class="rounded-full bg-white px-5 py-2 text-sm font-semibold text-slate-950 ring-1 ring-slate-300"
+                        (click)="refreshLines()"
+                >
+                    Refresh Markers
+                </button>
+
+                <a
+                        href="/#toolbox"
+                        class="rounded-full bg-white px-5 py-2 text-sm font-semibold text-slate-950 ring-1 ring-slate-300"
+                >
+                    Back to Toolbox
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex justify-center pt-2">
+        <button
+                type="button"
+                class="h-8 w-8 rounded-full opacity-20 transition hover:opacity-60"
+                [class.bg-slate-950]="!removalModeEnabled"
+                [class.bg-red-600]="removalModeEnabled"
+                title="Removal mode"
+                (click)="toggleRemovalMode()"
+        >
+            <span class="sr-only">
+                Toggle removal mode
+            </span>
+        </button>
+    </div>
+</section>

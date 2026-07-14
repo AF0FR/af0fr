@@ -1,0 +1,30 @@
+[project]
+name = "af0fr-backend"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "tturner",email = "tturner@bastiansolutions.com"}
+]
+package-mode = false
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi (>=0.136.3,<0.137.0)",
+    "uvicorn (>=0.49.0,<0.50.0)",
+    "psycopg[binary] (>=3.3.4,<4.0.0)",
+    "python-dotenv (>=1.2.2,<2.0.0)"
+]
+
+
+[tool.poetry]
+package-mode = false
+
+[tool.uv]
+package = false
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.15.16"
