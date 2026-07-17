@@ -1,0 +1,28 @@
+<nav
+    [class]="pillStyle
+        ? 'rounded-2xl bg-white/90 p-3 shadow-xl'
+        : 'rounded-2xl bg-slate-950 p-1.5 text-white shadow-xl'"
+    [attr.aria-label]="ariaLabel"
+>
+    <div
+        [class]="pillStyle
+            ? 'flex rounded-full bg-white p-1 ring-1 ring-slate-300'
+            : 'grid ' + columnsClass"
+    >
+        @for (option of options; track option.value) {
+            <button
+                type="button"
+                [class]="pillStyle
+                    ? 'flex-1 rounded-full px-4 py-2 text-xs font-bold'
+                    : 'min-h-11 rounded-xl px-4 py-2 text-sm font-black transition motion-reduce:transition-none'"
+                [class.bg-orange-500]="selected === option.value"
+                [class.text-white]="selected === option.value"
+                [class.text-slate-400]="!pillStyle && selected !== option.value"
+                [class.text-slate-700]="pillStyle && selected !== option.value"
+                (click)="selectedChange.emit(option.value)"
+            >
+                {{ option.label }}
+            </button>
+        }
+    </div>
+</nav>

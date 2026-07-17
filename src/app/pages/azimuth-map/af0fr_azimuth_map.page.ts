@@ -4,78 +4,22 @@ import { HttpClient } from '@angular/common/http';
 import * as L from 'leaflet';
 
 import { environment } from '../../../environments/environment';
-
-
-type AzimuthLine = {
-    id: string;
-    label: string;
-    fromLat: number;
-    fromLng: number;
-    toLat: number;
-    toLng: number;
-    bearingDeg: number;
-    distanceMiles: number;
-    createdBy?: string | null;
-    reportId?: string | null;
-    reportIds?: string[];
-    sourcePointId?: string | null;
-    createdAt?: string;
-};
-
-type ReportPoint = {
-    id: string;
-    label: string;
-    lat: number;
-    lng: number;
-    createdBy?: string | null;
-    reportId?: string | null;
-    reportIds?: string[];
-    createdAt?: string;
-};
-
-type MapMarker =
-    | {
-        kind: 'point';
-        point: ReportPoint;
-    }
-    | {
-        kind: 'azimuth';
-        line: AzimuthLine;
-    };
-
-type CallsignGroup = {
-    callsign: string;
-    color: string;
-    markers: MapMarker[];
-    points: ReportPoint[];
-    lines: AzimuthLine[];
-};
-
-type SightingReport = {
-    id: string;
-    callsign: string;
-    reportDate: string;
-    reportTime: string;
-    sourceLabel: string;
-    frequencyMhz: string;
-    notes?: string | null;
-    createdAt?: string;
-};
-
-type RepeaterOption = {
-    value: string;
-    label: string;
-    sourceLabel: string;
-    frequencyMhz: string;
-};
-
-type AzimuthView = 'reports' | 'map';
+import { AzimuthHeader } from './azimuth-header/azimuth-header.component';
+import {
+    AzimuthLine,
+    AzimuthView,
+    CallsignGroup,
+    MapMarker,
+    RepeaterOption,
+    ReportPoint,
+    SightingReport,
+} from './models/azimuth.model';
 
 @Component({
     standalone: true,
     selector: 'af0fr-azimuth-map-page',
     templateUrl: './af0fr_azimuth_map.page.html',
-    imports: [FormsModule]
+    imports: [FormsModule, AzimuthHeader]
 })
 export class Af0frAzimuthMapPage implements AfterViewInit, OnDestroy {
     private refreshIntervalId: number | null = null;

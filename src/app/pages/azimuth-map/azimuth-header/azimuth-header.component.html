@@ -1,0 +1,32 @@
+<div class="space-y-4">
+    <div class="rounded-2xl bg-white/90 p-4 shadow-xl">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="text-sm uppercase tracking-[0.32em] text-slate-600">Fox Hunt</div>
+            <div class="flex flex-wrap items-center gap-2">
+                <div class="rounded-full bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-300">
+                    <span class="text-slate-500">Call sign</span>
+                    <span class="ml-1 font-black text-slate-950">{{ currentCallsign }}</span>
+                </div>
+                @if (!editingCallsign) {
+                    <button type="button" class="rounded-full bg-slate-950 px-4 py-2 text-xs font-bold text-white" (click)="callsignEdit.emit()">Edit</button>
+                }
+            </div>
+
+            @if (editingCallsign) {
+                <div class="flex w-full flex-wrap items-center gap-2">
+                    <input #callsignBox type="text" class="min-w-0 flex-1 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-black uppercase text-slate-950" [value]="callsignDraft" autocapitalize="characters" autocomplete="off" inputmode="text">
+                    <button type="button" class="rounded-full bg-orange-500 px-5 py-2 text-sm font-semibold text-white" (click)="callsignSave.emit(callsignBox.value)">Save</button>
+                    <button type="button" class="rounded-full bg-white px-5 py-2 text-sm font-semibold text-slate-950 ring-1 ring-slate-300" (click)="callsignCancel.emit()">Cancel</button>
+                </div>
+            }
+        </div>
+    </div>
+
+    <app-segmented-navigation
+            [options]="navigationOptions"
+            [selected]="activeView"
+            ariaLabel="Fox hunt sections"
+            [pillStyle]="true"
+            (selectedChange)="viewSelect.emit($any($event))"
+    />
+</div>

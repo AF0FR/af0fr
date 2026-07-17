@@ -1,132 +1,52 @@
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { firstValueFrom } from 'rxjs';
-import { environment } from '../../../environments/environment';
-
-type LogbookView = 'qsoEntry' | 'sessionLog' | 'spots' | 'dxSummit';
-type ContestMode = 'GENERAL' | 'SST';
-
-interface LogbookEntry {
-    id: string;
-    contest: ContestMode;
-    callsign: string;
-    qsoDate: string;
-    timeOn: string;
-    band: string;
-    frequency: string;
-    mode: string;
-    rstSent: string;
-    rstReceived: string;
-    name: string;
-    qth: string;
-    state: string;
-    country: string;
-    parkReference: string;
-    notes: string;
-}
-
-interface SstMultiplierMark {
-    key: string;
-    label: string;
-    column: 'S/P' | 'DXc';
-}
-
-interface SstEntryRow {
-    entry: LogbookEntry;
-    multipliers: SstMultiplierMark[];
-    spMultiplier: SstMultiplierMark | null;
-    dxcMultiplier: SstMultiplierMark | null;
-}
-
-interface NamedLogbook {
-    id: string;
-    name: string;
-    createdAt: string;
-    updatedAt: string;
-    entries: LogbookEntry[];
-}
-
-interface ZipPlaceResponse {
-    places: Array<{ latitude: string; longitude: string }>;
-}
-
-interface PotaSpot {
-    activator?: string;
-    reference?: string;
-    frequency?: number | string;
-    mode?: string;
-    comments?: string;
-    comment?: string;
-    spotterComments?: string;
-    locationDesc?: string;
-    name?: string;
-}
-
-interface PotaPark {
-    reference?: string;
-    name?: string;
-    latitude?: number | string;
-    longitude?: number | string;
-    locationDesc?: string;
-}
-
-interface PotaSpotRow {
-    miles: number;
-    activator: string;
-    reference: string;
-    park: string;
-    location: string;
-    frequency: string;
-    band: string;
-    mode: string;
-    comments: string;
-}
-
-interface PotaSkipCounts {
-    inactive: number;
-    program: number;
-    mode: number;
-    band: number;
-    noCoordinates: number;
-    duplicates: number;
-}
-
-interface DxSpotRow {
-    time: string;
-    spotter: string;
-    frequency: string;
-    callsign: string;
-    comment: string;
-    band: string;
-    mode: string;
-    country: string;
-}
-
-interface DxSummitApiSpot {
-    de_call?: string;
-    dx_call?: string;
-    frequency?: number | string;
-    time?: string;
-    info?: string | null;
-    dx_country?: string | null;
-}
+import { LogbookSelector } from './logbook-selector/logbook-selector.component';
+import {
+    ContestMode,
+    DxSummitApiSpot,
+    DxSpotRow,
+    LogbookEntry,
+    LogbookView,
+    NamedLogbook,
+    PotaSkipCounts,
+    PotaPark,
+    PotaSpot,
+    PotaSpotRow,
+    SstEntryRow,
+    SstMultiplierMark,
+} from './models/logbook.model';
+import { OperatorProfile } from './operator-profile/operator-profile.component';
+import {
+    SegmentedNavigation,
+    SegmentedNavigationOption,
+} from '../../shared/ui/segmented-navigation/segmented-navigation.component';
+import { LogbookDataService } from './services/logbook-data.service';
 
 @Component({
     standalone: true,
-    imports: [CommonModule, FormsModule],
+    imports: [
+        CommonModule,
+        FormsModule,
+        LogbookSelector,
+        OperatorProfile,
+        SegmentedNavigation,
+    ],
     templateUrl: './af0fr_logbook.page.html',
 })
 export class Af0frLogbookPage implements OnInit {
+    private readonly dataService = inject(LogbookDataService);
+    readonly navigationOptions: SegmentedNavigationOption[] = [
+        { value: 'qsoEntry', label: 'QSO entry' },
+        { value: 'sessionLog', label: 'Session log' },
+        { value: 'spots', label: 'POTA spots' },
+        { value: 'dxSummit', label: 'DX Summit' },
+    ];
     private readonly legacyStorageKey = 'af0fr-logbook-entries';
     private readonly logsStorageKey = 'af0fr-logbook-logs';
     private readonly activeLogKey = 'af0fr-logbook-active-log';
     private readonly profileKey = 'af0fr-logbook-profile';
     private readonly contestModeKey = 'af0fr-logbook-mode';
-    private readonly potaSpotsUrl = 'https://api.pota.app/spot/activator';
-    private readonly zipUrl = 'https://api.zippopotam.us/us/';
-    private readonly potaParksUrl = 'https://api.pota.app/program/parks/';
 
     readonly bands = ['160m', '80m', '60m', '40m', '30m', '20m', '17m', '15m', '12m', '10m', '6m', '2m', '70cm'];
     readonly modes = ['SSB', 'CW', 'FM', 'FT8', 'FT4', 'AM', 'RTTY', 'JS8'];
@@ -163,8 +83,6 @@ export class Af0frLogbookPage implements OnInit {
     dxSummitLoading = false;
     dxSummitError = '';
     dxSummitRows: DxSpotRow[] = [];
-
-    constructor(private http: HttpClient) {}
 
     ngOnInit(): void {
         this.restoreProfile();
@@ -435,7 +353,7 @@ export class Af0frLogbookPage implements OnInit {
         this.potaSkipped = this.blankSkipCounts();
 
         try {
-            const zip = await firstValueFrom(this.http.get<ZipPlaceResponse>(`${this.zipUrl}${encodeURIComponent(this.potaZip.trim())}`));
+            const zip = await this.dataService.getZipLocation(this.potaZip);
             const place = zip.places[0];
 
             if (!place) {
@@ -444,7 +362,7 @@ export class Af0frLogbookPage implements OnInit {
 
             const homeLat = Number(place.latitude);
             const homeLon = Number(place.longitude);
-            const spots = await firstValueFrom(this.http.get<PotaSpot[]>(this.potaSpotsUrl));
+            const spots = await this.dataService.getPotaSpots();
             const programs = this.parseProgramFilter(this.potaPrograms);
             const modeFilter = this.potaMode === 'ANY' ? '' : this.potaMode;
             const bandFilter = this.potaBand === 'ANY' ? '' : this.potaBand;
@@ -549,7 +467,10 @@ export class Af0frLogbookPage implements OnInit {
         this.dxSummitError = '';
 
         try {
-            const response = await this.fetchDxSummitSpots();
+            const response = await this.dataService.getDxSummitSpots(
+                this.dxSummitUrl,
+                this.dxSummitLimit
+            );
             this.dxSummitRows = response.map((spot) => this.mapDxSummitSpot(spot)).filter((row): row is DxSpotRow => !!row);
             this.dxSummitRaw = JSON.stringify(response, null, 2);
         } catch (error) {
@@ -600,19 +521,6 @@ export class Af0frLogbookPage implements OnInit {
             notes: row.comment,
         });
         this.activeView = 'qsoEntry';
-    }
-
-    private async fetchDxSummitSpots(): Promise<DxSummitApiSpot[]> {
-        const limit = Math.max(1, Math.min(Number(this.dxSummitLimit) || 50, 200));
-        const backendUrl = `${environment.apiUrl}/dx-summit/spots?limit=${encodeURIComponent(String(limit))}`;
-
-        try {
-            return await firstValueFrom(this.http.get<DxSummitApiSpot[]>(backendUrl));
-        } catch (backendError) {
-            console.warn('DX Summit backend proxy failed, trying direct API', backendError);
-            const directUrl = `${this.dxSummitUrl}?limit=${encodeURIComponent(String(limit))}&limit_time=true&refresh=${Date.now()}`;
-            return firstValueFrom(this.http.get<DxSummitApiSpot[]>(directUrl));
-        }
     }
 
     private restoreProfile(): void {
@@ -1096,16 +1004,7 @@ export class Af0frLogbookPage implements OnInit {
     }
 
     private async loadParkCache(prefix: string): Promise<Map<string, PotaPark>> {
-        const parks = await firstValueFrom(this.http.get<PotaPark[]>(`${this.potaParksUrl}${encodeURIComponent(prefix)}`));
-        const cache = new Map<string, PotaPark>();
-
-        for (const park of parks) {
-            if (park.reference) {
-                cache.set(park.reference, park);
-            }
-        }
-
-        return cache;
+        return this.dataService.getPotaParks(prefix);
     }
 
     private parseProgramFilter(raw: string): Set<string> {

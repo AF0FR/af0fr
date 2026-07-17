@@ -1,25 +1,12 @@
 <main class="min-h-screen bg-orange-500 px-3 py-4 text-slate-950 sm:px-4 sm:py-8">
     <div class="mx-auto max-w-7xl space-y-4 sm:space-y-6">
-        <header class="rounded-2xl bg-slate-950 p-5 text-white shadow-xl sm:rounded-3xl sm:p-8">
-            <div class="flex items-start justify-between gap-4">
-                <div class="min-w-0">
-                    <div class="text-[10px] font-semibold uppercase tracking-[0.28em] text-orange-400 sm:text-xs">AF0FR Toolbox</div>
-                    <h1 class="mt-2 text-3xl font-black tracking-tight sm:text-5xl">CW Copy Trainer</h1>
-                    <label class="mt-3 flex max-w-sm items-end gap-2 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                        <span class="min-w-0 flex-1">Callsign
-                            <input class="mt-1 min-h-10 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 font-mono text-sm font-bold uppercase tracking-normal text-white outline-none focus:border-orange-500" [value]="profile.call" maxlength="16" autocorrect="off" spellcheck="false" (input)="updateProfile('call', $any($event.target).value)">
-                        </span>
-                        <button type="button" class="min-h-10 rounded-xl bg-orange-500 px-4 text-sm font-black tracking-normal text-white hover:bg-orange-400" (click)="saveProfile()">Save</button>
-                    </label>
-                </div>
-                <a href="/#toolbox" class="shrink-0 text-sm font-semibold text-orange-300 hover:text-orange-200">← Back</a>
-            </div>
-        </header>
-
-        <nav class="flex rounded-2xl bg-slate-950 p-1.5 text-white shadow-xl" aria-label="CW trainer sections">
-            <button type="button" class="min-h-11 flex-1 rounded-xl px-4 py-2 text-sm font-black transition motion-reduce:transition-none" [class.bg-orange-500]="activeWorkspace === 'practice'" [class.text-white]="activeWorkspace === 'practice'" [class.text-slate-400]="activeWorkspace !== 'practice'" (click)="selectWorkspace('practice')">Practice</button>
-            <button type="button" class="min-h-11 flex-1 rounded-xl px-4 py-2 text-sm font-black transition motion-reduce:transition-none" [class.bg-orange-500]="activeWorkspace === 'progress'" [class.text-white]="activeWorkspace === 'progress'" [class.text-slate-400]="activeWorkspace !== 'progress'" (click)="selectWorkspace('progress')">Progress</button>
-        </nav>
+        <cw-trainer-header
+                [callsign]="profile.call"
+                [activeWorkspace]="activeWorkspace"
+                (callsignChange)="updateProfile('call', $event)"
+                (profileSave)="saveProfile()"
+                (workspaceSelect)="selectWorkspace($event)"
+        />
 
         <div *ngIf="activeWorkspace === 'practice'" class="flex items-center justify-between gap-3 rounded-2xl bg-white p-3 shadow-xl lg:hidden">
             <div class="min-w-0"><div class="truncate text-sm font-black">{{ activeContentLabel }} · {{ activeExerciseFormatLabel }}</div><div class="truncate text-xs text-slate-500">{{ wpm }}/{{ farnsworthWpm }} WPM · {{ audioEffect }} · {{ sessionLengthLabel }}</div></div>
@@ -29,6 +16,142 @@
         <button *ngIf="mobileSetupOpen" type="button" class="fixed inset-x-0 bottom-0 top-11 z-[9998] bg-slate-950/70 backdrop-blur-sm lg:hidden" aria-label="Close session settings" (click)="closeMobileSetup()"></button>
 
         <section class="grid items-start gap-4" [ngClass]="activeWorkspace === 'practice' ? 'lg:grid-cols-[minmax(280px,340px)_minmax(0,1fr)] lg:gap-6' : 'grid-cols-1'">
+        <section *ngIf="activeWorkspace === 'cheatSheet'" class="cw-cheat-sheet-workspace min-w-0 rounded-2xl bg-white p-3 shadow-xl sm:rounded-3xl sm:p-6">
+            <div class="mb-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
+                <div>
+                    <div class="text-sm font-black uppercase tracking-widest text-slate-500">On-air reference</div>
+                    <div class="mt-1 text-xs text-slate-400">Front-and-back reference, sized as two 5.5 × 3.5 inch print pages.</div>
+                </div>
+                <button type="button" class="min-h-10 rounded-xl bg-slate-950 px-4 text-sm font-black text-white hover:bg-slate-800" (click)="printCheatSheet()">Print card</button>
+            </div>
+
+            <div class="cw-cheat-card-stack overflow-x-auto pb-2 print:overflow-visible print:pb-0">
+                <article class="cw-cheat-card cw-cheat-front" aria-label="AF0FR CW QSO cheat sheet front">
+                    <h2>AF0FR CW QSO CHEAT SHEET <span>— FRONT · ON-AIR FLOW</span></h2>
+
+                    <section class="cw-cheat-two-col">
+                        <div class="cw-cheat-box">
+                            <h3>AF0FR Calls CQ</h3>
+                            <p><code>QRL?</code> Listen; repeat if needed.</p>
+                            <p><code>CQ CQ CQ DE AF0FR AF0FR K</code></p>
+                            <p>Copy <code>&lt;CALL&gt;</code>, then send:</p>
+                            <div class="cw-cheat-block">&lt;CALL&gt; DE AF0FR
+
+&lt;GM/GA/GE&gt; TKS FER CALL
+UR RST &lt;RST&gt;
+QTH OAKVILLE MO
+NAME TAYLOR
+
+HW? &lt;CALL&gt; DE AF0FR K</div>
+                        </div>
+
+                        <div class="cw-cheat-box">
+                            <h3>AF0FR Answers CQ</h3>
+                            <p>Copy the CQ station’s call, then send:</p>
+                            <p><code>&lt;CALL&gt; DE AF0FR AF0FR K</code></p>
+                            <p>After the first exchange, reply:</p>
+                            <div class="cw-cheat-block">&lt;CALL&gt; DE AF0FR
+
+RR &lt;GM/GA/GE&gt; &lt;NAME&gt;
+TKS FER RPRT
+UR RST &lt;RST&gt;
+QTH OAKVILLE MO
+NAME TAYLOR
+
+HW? &lt;CALL&gt; DE AF0FR K</div>
+                        </div>
+                    </section>
+
+                    <section class="cw-cheat-flow">
+                        <div class="cw-cheat-box">
+                            <h3>Continue / Extended QSO</h3>
+                            <div class="cw-cheat-block">&lt;CALL&gt; DE AF0FR
+
+RR &lt;NAME&gt; TKS FER INFO
+WX SUNNY &lt;BT&gt; TEMP 82 F
+RIG XIEGU G90 &lt;BT&gt; PWR 20 W
+ANT 80M EFHW
+
+HW? &lt;CALL&gt; DE AF0FR K</div>
+                        </div>
+                        <div class="cw-cheat-box">
+                            <h3>Topic Options</h3>
+                            <div class="cw-cheat-topic-grid">
+                                <div>WX SUNNY</div><div>TEMP 82 F</div>
+                                <div>RIG G90</div><div>PWR 20 W</div>
+                                <div>ANT 80M EFHW</div><div>QTH OAKVILLE MO</div>
+                                <div>LIC EXTRA</div><div>HAM FER 4 MOS</div>
+                            </div>
+                            <div class="cw-cheat-note">Acknowledge first, then add 2–3 topics.</div>
+                        </div>
+                    </section>
+
+                    <section class="cw-cheat-two-col">
+                        <div class="cw-cheat-box">
+                            <h3>Close</h3>
+                            <div class="cw-cheat-block">&lt;CALL&gt; DE AF0FR
+RR &lt;NAME&gt; TKS FER NICE QSO
+HOPE CU AGN 73
+&lt;CALL&gt; DE AF0FR SK</div>
+                        </div>
+                        <div class="cw-cheat-box">
+                            <h3>Reply to Their Close</h3>
+                            <div class="cw-cheat-block">&lt;CALL&gt; DE AF0FR
+TU &lt;NAME&gt; FER QSO
+73 ES HPE CU AGN
+&lt;CALL&gt; DE AF0FR SK</div>
+                        </div>
+                    </section>
+                </article>
+
+                <article class="cw-cheat-card cw-cheat-back" aria-label="AF0FR CW QSO cheat sheet back">
+                    <h2>AF0FR CW QSO CHEAT SHEET <span>— BACK · COPY &amp; RECOVERY</span></h2>
+
+                    <section class="cw-cheat-two-col">
+                        <div class="cw-cheat-box">
+                            <h3>Copy Their Information</h3>
+                            <div class="cw-cheat-copy-grid">
+                                <div>CALL __________________</div><div>RST ___________________</div>
+                                <div>NAME __________________</div><div>QTH ___________________</div>
+                                <div>RIG ___________________</div><div>PWR ___________________</div>
+                                <div>ANT ___________________</div><div>WX ____________________</div>
+                            </div>
+                        </div>
+                        <div class="cw-cheat-box">
+                            <h3>Request What You Missed</h3>
+                            <div class="cw-cheat-quick">
+                                <div><b>PSE QRS</b> slow down</div><div><b>QRS 15</b> send 15 WPM</div>
+                                <div><b>AGN PSE</b> send again</div><div><b>NIL CPY</b> nothing copied</div>
+                                <div><b>CALL AGN?</b> callsign</div><div><b>NAME AGN?</b> name</div>
+                                <div><b>QTH AGN?</b> location</div><div><b>RST AGN?</b> report</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="cw-cheat-back-middle">
+                        <div class="cw-cheat-box">
+                            <h3>RST Signal Report</h3>
+                            <div class="cw-cheat-small"><b>R</b> 1 unreadable · 2 barely · 3 difficult · 4 readable · 5 perfect<br><b>S</b> 1 faint → 5 fairly good → 7 moderate → 9 extremely strong<br><b>T</b> 1 rough AC · 5 filtered AC · 7 near DC · 9 perfect tone<br><b>Common:</b> 559 weak/clean · 579 good/clean · 599 excellent</div>
+                        </div>
+                        <div class="cw-cheat-box">
+                            <h3>Noise &amp; Conditions</h3>
+                            <div class="cw-cheat-small"><b>QRM</b> interference<br><b>QRN</b> atmospheric noise<br><b>QSB</b> fading<br><b>QRH</b> frequency varies<br><b>QRZ?</b> who is calling?</div>
+                        </div>
+                    </section>
+
+                    <section class="cw-cheat-back-bottom">
+                        <div class="cw-cheat-box">
+                            <h3>Procedure</h3>
+                            <div class="cw-cheat-quick"><div><b>K</b> anyone go ahead</div><div><b>KN</b> named station only</div><div><b>&lt;BT&gt;</b> separator</div><div><b>BK</b> quick handoff</div><div><b>SK</b> end contact</div><div><b>AR</b> end message</div></div>
+                        </div>
+                        <div class="cw-cheat-box">
+                            <h3>Common Shorthand</h3>
+                            <div class="cw-cheat-quick"><div><b>RR</b> received</div><div><b>FB</b> fine business</div><div><b>HR</b> here</div><div><b>HW?</b> how copy?</div><div><b>TKS FER</b> thanks for</div><div><b>CU AGN</b> see you again</div></div>
+                        </div>
+                    </section>
+                </article>
+            </div>
+        </section>
         <aside #mobileSetupDrawer *ngIf="activeWorkspace === 'practice'" class="fixed inset-x-2 bottom-2 top-14 z-[9998] hidden max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain rounded-2xl bg-white p-2 shadow-2xl outline-none sm:inset-x-3 sm:bottom-3 sm:top-16 sm:max-h-[calc(100dvh-4.75rem)] sm:p-5 lg:sticky lg:top-4 lg:block lg:max-h-[calc(100vh-2rem)] lg:rounded-3xl" [class.!block]="mobileSetupOpen" tabindex="-1" [attr.role]="mobileSetupOpen ? 'dialog' : null" [attr.aria-modal]="mobileSetupOpen ? 'true' : null" [attr.aria-label]="mobileSetupOpen ? 'Session settings' : null">
             <div class="sticky -top-2 z-10 -mx-2 mb-2 flex items-center justify-between border-b border-slate-100 bg-white/95 px-2 py-2 backdrop-blur sm:static sm:mx-0 sm:mb-3 sm:border-0 sm:bg-transparent sm:p-0 lg:hidden"><strong>Adjust session</strong><button type="button" class="min-h-10 rounded-xl bg-slate-100 px-4 text-sm font-black" (click)="closeMobileSetup()">Done</button></div>
             <div>

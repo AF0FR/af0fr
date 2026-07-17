@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { Station } from '../models/station.model';
 
 type StationMembershipFilter = 'member' | 'visitor' | 'unknown';
@@ -7,6 +7,7 @@ type StationMembershipFilter = 'member' | 'visitor' | 'unknown';
 @Component({
     selector: 'station-list',
     standalone: true,
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [CommonModule],
     templateUrl: './station-list.component.html',
 })

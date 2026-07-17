@@ -12,29 +12,13 @@ import { SessionLog } from './session-log/session-log.component';
 import { Station } from './models/station.model';
 import { LogEntry } from './models/log-entry.model';
 import { ClubMember, ClubStatus } from './models/club-member.model';
-import { RosterCheckInRequest, RosterTable } from './roster-table.component';
-
-interface SavedNetControlSession {
-    id: string;
-    name: string;
-    savedAt: string;
-    openingScript: string;
-    trafficPrompt: string;
-    lateCheckinPrompt: string;
-    closingScript: string;
-    stations: Station[];
-    queue: Station[];
-    logEntries: LogEntry[];
-}
-
-interface NetControlSharedPayload extends Omit<SavedNetControlSession, 'id' | 'name' | 'savedAt'> {
-    savedSessions?: SavedNetControlSession[];
-}
-
-interface NetControlStateResponse {
-    payload: NetControlSharedPayload;
-    updatedAt: string;
-}
+import { RosterCheckInRequest, RosterTable } from './roster-table/roster-table.component';
+import {
+    NetControlSharedPayload,
+    NetControlStateResponse,
+    SavedNetControlSession,
+} from './models/saved-net-control-session.model';
+import { SessionManager } from './session-manager/session-manager.component';
 
 @Component({
     standalone: true,
@@ -46,7 +30,8 @@ interface NetControlStateResponse {
         QueuePanel,
         ScriptPanel,
         SessionLog,
-        RosterTable
+        RosterTable,
+        SessionManager
     ],
     templateUrl: './af0fr_net_control.page.html',
 })

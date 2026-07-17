@@ -1,0 +1,103 @@
+<section class="rounded-2xl border border-slate-700 bg-slate-900/90 shadow">
+    <div class="flex items-center justify-between gap-3 border-b border-slate-800 px-4 py-3">
+        <span
+            class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white"
+            [class.bg-emerald-600]="backendOnline"
+            [class.bg-rose-700]="!backendOnline"
+        >
+            <span class="h-1.5 w-1.5 rounded-full bg-white/90"></span>
+            {{ backendOnline ? 'Shared' : 'Local fallback' }}
+        </span>
+
+        <button
+            type="button"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs font-semibold hover:border-orange-500 hover:text-orange-400"
+            [class.text-orange-400]="editing"
+            [class.border-orange-500]="editing"
+            [class.text-slate-400]="!editing"
+            title="Toggle roster edit mode"
+            (click)="editingToggle.emit()"
+        >
+            {{ editing ? 'Editing' : 'Edit' }}
+        </button>
+    </div>
+
+    <div class="px-4 py-4">
+        <div class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Current session
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <input
+                type="text"
+                class="min-w-[220px] flex-1 rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-white placeholder:text-slate-500"
+                [ngModel]="savedSessionName"
+                (ngModelChange)="savedSessionNameChange.emit($event)"
+                placeholder="Net name"
+            />
+
+            <button type="button" class="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-400" (click)="saveCurrent.emit()">
+                Save net
+            </button>
+            <button type="button" class="rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700" (click)="exportCurrent.emit()">
+                Export
+            </button>
+            <label class="cursor-pointer rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">
+                Import
+                <input type="file" accept="application/json,.json" class="hidden" (change)="importCurrent.emit($event)" />
+            </label>
+
+            @if (editing) {
+                <button
+                    type="button"
+                    class="ml-auto rounded-lg border px-4 py-2 text-sm font-semibold disabled:cursor-wait disabled:opacity-75"
+                    [ngClass]="pendingClearCurrentSession
+                        ? 'border-rose-600 bg-rose-600 text-white'
+                        : 'border-rose-800 bg-transparent text-rose-300 hover:bg-rose-900/40 hover:text-rose-200'"
+                    (click)="clearCurrent.emit()"
+                    [disabled]="isClearingCurrentSession"
+                >
+                    {{ isClearingCurrentSession ? 'Clearing...' : pendingClearCurrentSession ? 'Confirm clear' : 'Clear current' }}
+                </button>
+            }
+        </div>
+    </div>
+
+    <div class="border-t border-slate-800 px-4 py-4">
+        <div class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Saved nets
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <select
+                class="min-w-[240px] flex-1 rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-white"
+                [ngModel]="selectedSavedSessionId"
+                (ngModelChange)="selectedSavedSessionIdChange.emit($event)"
+            >
+                <option value="">Select saved net</option>
+                <option *ngFor="let session of savedSessions" [value]="session.id">
+                    {{ session.name || (session.savedAt | date:'short') }}
+                    —
+                    {{ session.stations.length || 0 }} stations
+                </option>
+            </select>
+
+            <button
+                type="button"
+                class="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-50"
+                (click)="loadSelected.emit()"
+                [disabled]="!selectedSavedSessionId"
+            >
+                Load
+            </button>
+            @if (editing) {
+                <button
+                    type="button"
+                    class="rounded-lg border border-rose-800 bg-transparent px-4 py-2 text-sm font-semibold text-rose-300 hover:bg-rose-900/40 hover:text-rose-200 disabled:cursor-not-allowed disabled:opacity-50"
+                    (click)="deleteSelected.emit()"
+                    [disabled]="!selectedSavedSessionId"
+                >
+                    Delete
+                </button>
+            }
+        </div>
+    </div>
+</section>

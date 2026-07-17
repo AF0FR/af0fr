@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
     AfterViewInit,
+    ChangeDetectionStrategy,
     Component,
     ElementRef,
     EventEmitter,
@@ -11,8 +12,8 @@ import {
     SimpleChanges,
     ViewChild,
 } from '@angular/core';
-import { ClubMember, ClubStatus } from './models/club-member.model';
-import { TrafficType } from './models/station.model';
+import { ClubMember, ClubStatus } from '../models/club-member.model';
+import { TrafficType } from '../models/station.model';
 
 export interface RosterCheckInRequest {
     member: ClubMember;
@@ -22,6 +23,7 @@ export interface RosterCheckInRequest {
 @Component({
     selector: 'roster-table',
     standalone: true,
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [CommonModule, FormsModule],
     templateUrl: './roster-table.component.html',
 })

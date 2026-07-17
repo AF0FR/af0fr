@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { LogbookDataService } from './pages/af0fr_logbook/services/logbook-data.service';
 
 export const routes: Routes = [
     {
@@ -24,6 +25,7 @@ export const routes: Routes = [
     },
     {
         path: 'logbook',
+        providers: [LogbookDataService],
         loadComponent: () => import('./pages/af0fr_logbook/af0fr_logbook.page').then(module => module.Af0frLogbookPage),
     },
 

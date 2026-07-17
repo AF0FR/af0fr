@@ -1,0 +1,29 @@
+<header class="ui-panel-dark">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="mt-1 text-sm uppercase tracking-[0.34em] text-orange-400">Logbook</div>
+        <a href="/#toolbox" class="shrink-0 text-sm font-semibold text-orange-300 hover:text-orange-200">Back</a>
+    </div>
+    <div class="grid grid-cols-2 gap-3 border-t border-slate-800 p-2">
+        <label class="block">
+            <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Operator call</span>
+            <input class="ui-control-dark mt-1 font-mono text-sm font-bold uppercase" [ngModel]="operatorCall" (ngModelChange)="operatorCallChange.emit($event)" autocorrect="off" spellcheck="false">
+        </label>
+        <label class="block">
+            <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Grid</span>
+            <input class="ui-control-dark mt-1 font-mono text-sm font-bold uppercase" [ngModel]="stationGrid" (ngModelChange)="stationGridChange.emit($event)" autocorrect="off" spellcheck="false">
+        </label>
+    </div>
+    <details class="mt-1 rounded-xl bg-slate-900">
+        <summary class="cursor-pointer list-none px-4 py-3 text-sm font-black text-slate-200">More settings</summary>
+        <div class="grid gap-3 border-t border-slate-800 p-4 sm:grid-cols-2 lg:grid-cols-4">
+            <label class="block"><span class="ui-label-dark">Name</span><input class="ui-control-dark mt-1" [ngModel]="operatorName" (ngModelChange)="operatorNameChange.emit($event)"></label>
+            <label class="block"><span class="ui-label-dark">Power W</span><input class="ui-control-dark mt-1 font-mono" [ngModel]="stationPower" (ngModelChange)="stationPowerChange.emit($event)"></label>
+            <label class="block"><span class="ui-label-dark">City</span><input class="ui-control-dark mt-1" [ngModel]="stationCity" (ngModelChange)="stationCityChange.emit($event)"></label>
+            <label class="block"><span class="ui-label-dark">State</span><input class="ui-control-dark mt-1 uppercase" [ngModel]="stationState" (ngModelChange)="stationStateChange.emit($event)"></label>
+            <label class="block"><span class="ui-label-dark">Rig</span><input class="ui-control-dark mt-1" [ngModel]="stationRig" (ngModelChange)="stationRigChange.emit($event)"></label>
+            <label class="block"><span class="ui-label-dark">Antenna</span><input class="ui-control-dark mt-1" [ngModel]="stationAntenna" (ngModelChange)="stationAntennaChange.emit($event)"></label>
+            <label class="block sm:col-span-2 lg:col-span-3"><span class="ui-label-dark">Country</span><input class="ui-control-dark mt-1" [ngModel]="stationCountry" (ngModelChange)="stationCountryChange.emit($event)"></label>
+            <button type="button" class="ui-button-primary" (click)="profileSave.emit()">Save settings</button>
+        </div>
+    </details>
+</header>

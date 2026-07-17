@@ -2,12 +2,13 @@ import { CommonModule } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { environment } from '../../../environments/environment';
+import { CwWorkspaceView, TrainerHeader } from './trainer-header/trainer-header.component';
 
 type PracticeMode = 'letters' | 'numbers' | 'mixed' | 'callsigns' | 'qsoWords' | 'qso';
 type TrainingGoal = 'learn' | 'speed' | 'accuracy' | 'weaknesses' | 'qso';
 type ExerciseFormat = 'groups' | 'continuous' | 'instant' | 'guidedQso' | 'simulatedQso';
 type SessionPreset = 'warmup' | 'weaknesses' | 'callsigns' | 'firstQso' | 'onAir';
-type WorkspaceView = 'practice' | 'progress';
+type WorkspaceView = CwWorkspaceView;
 type ToastTone = 'success' | 'info' | 'error';
 type SettingsSection = 'advanced' | 'content' | 'speed' | 'audio' | 'timing' | 'scoring';
 type SettingsSectionState = Record<SettingsSection, boolean>;
@@ -216,7 +217,7 @@ interface CwProficiency {
 
 @Component({
     standalone: true,
-    imports: [CommonModule],
+    imports: [CommonModule, TrainerHeader],
     templateUrl: './af0fr_cw_qso.page.html',
 })
 export class Af0frCwQsoPage implements OnInit, OnDestroy {
@@ -752,6 +753,10 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         if (this.mobileSetupOpen) this.closeMobileSetup(false);
         if (view === 'progress') this.loadPracticeMetrics();
         this.persistUiState();
+    }
+
+    printCheatSheet(): void {
+        window.print();
     }
 
     setMetricScope(showAll: boolean): void {

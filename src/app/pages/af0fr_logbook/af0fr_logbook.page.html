@@ -1,92 +1,44 @@
 <main class="min-h-screen bg-orange-500 px-3 py-4 text-slate-950 sm:px-4 sm:py-8">
     <div class="mx-auto max-w-7xl space-y-4 sm:space-y-6">
-        <header class="rounded-2xl bg-slate-950 p-4 text-white shadow-xl sm:p-5">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <div class="min-w-0">
-                    <div class="mt-1 text-sm uppercase tracking-[0.34em] text-orange-400">Logbook</div>
-                </div>
-                <a href="/#toolbox" class="shrink-0 text-sm font-semibold text-orange-300 hover:text-orange-200">Back</a>
-            </div>
-            <div class="grid gap-3 border-t border-slate-800 p-2 grid-cols-2">
-                <label class="block">
-                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Operator call</span>
-                    <input class="mt-1 min-h-10 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 font-mono text-sm font-bold uppercase text-white outline-none focus:border-orange-500" [(ngModel)]="operatorCall" autocorrect="off" spellcheck="false">
-                </label>
-                <label class="block">
-                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Grid</span>
-                    <input class="mt-1 min-h-10 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 font-mono text-sm font-bold uppercase text-white outline-none focus:border-orange-500" [(ngModel)]="stationGrid" autocorrect="off" spellcheck="false">
-                </label>
-            </div>
-            <details class="mt-1 rounded-xl bg-slate-900">
-                <summary class="cursor-pointer list-none px-4 py-3 text-sm font-black text-slate-200">
-                    More settings
-                </summary>
-                <div class="grid gap-3 border-t border-slate-800 p-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <label class="block">
-                        <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Name</span>
-                        <input class="mt-1 min-h-10 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm font-bold text-white outline-none focus:border-orange-500" [(ngModel)]="operatorName">
-                    </label>
-                    <label class="block">
-                        <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Power W</span>
-                        <input class="mt-1 min-h-10 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 font-mono text-sm font-bold text-white outline-none focus:border-orange-500" [(ngModel)]="stationPower">
-                    </label>
-                    <label class="block">
-                        <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">City</span>
-                        <input class="mt-1 min-h-10 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm font-bold text-white outline-none focus:border-orange-500" [(ngModel)]="stationCity">
-                    </label>
-                    <label class="block">
-                        <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">State</span>
-                        <input class="mt-1 min-h-10 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm font-bold uppercase text-white outline-none focus:border-orange-500" [(ngModel)]="stationState">
-                    </label>
-                    <label class="block">
-                        <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Rig</span>
-                        <input class="mt-1 min-h-10 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm font-bold text-white outline-none focus:border-orange-500" [(ngModel)]="stationRig">
-                    </label>
-                    <label class="block">
-                        <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Antenna</span>
-                        <input class="mt-1 min-h-10 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm font-bold text-white outline-none focus:border-orange-500" [(ngModel)]="stationAntenna">
-                    </label>
-                    <label class="block sm:col-span-2 lg:col-span-3">
-                        <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Country</span>
-                        <input class="mt-1 min-h-10 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm font-bold text-white outline-none focus:border-orange-500" [(ngModel)]="stationCountry">
-                    </label>
-                    <button type="button" class="min-h-10 rounded-xl bg-orange-500 px-5 text-sm font-black text-white hover:bg-orange-400" (click)="saveProfile()">Save settings</button>
-                </div>
-            </details>
-        </header>
+        <logbook-operator-profile
+                [(operatorCall)]="operatorCall"
+                [(operatorName)]="operatorName"
+                [(stationGrid)]="stationGrid"
+                [(stationCity)]="stationCity"
+                [(stationState)]="stationState"
+                [(stationCountry)]="stationCountry"
+                [(stationRig)]="stationRig"
+                [(stationAntenna)]="stationAntenna"
+                [(stationPower)]="stationPower"
+                (profileSave)="saveProfile()"
+        />
 
-        <section class="rounded-2xl bg-slate-950 p-2 text-white shadow-xl">
-            <div class="flex gap-2 overflow-x-auto pb-2" aria-label="Named logbooks">
-                <button *ngFor="let logbook of logbooks" type="button" class="min-h-11 min-w-max rounded-xl px-4 text-left text-sm font-black transition" [class.bg-orange-500]="activeLogId === logbook.id" [class.text-white]="activeLogId === logbook.id" [class.bg-slate-900]="activeLogId !== logbook.id" [class.text-slate-300]="activeLogId !== logbook.id" (click)="selectLogbook(logbook.id)">
-                    {{ logbook.name }}
-                    <span class="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-[10px]">{{ logbook.entries.length }}</span>
-                </button>
-            </div>
-            <div class="grid gap-2 border-t border-slate-800 pt-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
-                <input class="min-h-11 rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm font-bold text-white outline-none focus:border-orange-500" [(ngModel)]="newLogName" placeholder="New logbook name">
-                <button type="button" class="min-h-11 rounded-xl bg-orange-500 px-4 text-sm font-black text-white hover:bg-orange-400" (click)="addLogbook()">Add log</button>
-                <div class="grid grid-cols-2 gap-2">
-                    <button type="button" class="min-h-11 rounded-xl bg-slate-800 px-4 text-sm font-black text-slate-100 hover:bg-slate-700" (click)="renameActiveLogbook()">Rename</button>
-                    <button type="button" class="min-h-11 rounded-xl bg-red-950 px-4 text-sm font-black text-red-100 hover:bg-red-900" (click)="deleteActiveLogbook()">Delete</button>
-                </div>
-            </div>
-        </section>
+        <logbook-selector
+                [logbooks]="logbooks"
+                [activeLogId]="activeLogId"
+                [(newLogName)]="newLogName"
+                (logbookSelect)="selectLogbook($event)"
+                (logbookAdd)="addLogbook()"
+                (activeLogbookRename)="renameActiveLogbook()"
+                (activeLogbookDelete)="deleteActiveLogbook()"
+        />
 
-        <nav class="grid grid-cols-2 rounded-2xl bg-slate-950 p-1.5 text-white shadow-xl lg:grid-cols-4" aria-label="Logbook sections">
-            <button type="button" class="min-h-11 rounded-xl px-4 py-2 text-sm font-black transition" [class.bg-orange-500]="activeView === 'qsoEntry'" [class.text-white]="activeView === 'qsoEntry'" [class.text-slate-400]="activeView !== 'qsoEntry'" (click)="selectView('qsoEntry')">QSO entry</button>
-            <button type="button" class="min-h-11 rounded-xl px-4 py-2 text-sm font-black transition" [class.bg-orange-500]="activeView === 'sessionLog'" [class.text-white]="activeView === 'sessionLog'" [class.text-slate-400]="activeView !== 'sessionLog'" (click)="selectView('sessionLog')">Session log</button>
-            <button type="button" class="min-h-11 rounded-xl px-4 py-2 text-sm font-black transition" [class.bg-orange-500]="activeView === 'spots'" [class.text-white]="activeView === 'spots'" [class.text-slate-400]="activeView !== 'spots'" (click)="selectView('spots')">POTA spots</button>
-            <button type="button" class="min-h-11 rounded-xl px-4 py-2 text-sm font-black transition" [class.bg-orange-500]="activeView === 'dxSummit'" [class.text-white]="activeView === 'dxSummit'" [class.text-slate-400]="activeView !== 'dxSummit'" (click)="selectView('dxSummit')">DX Summit</button>
-        </nav>
+        <app-segmented-navigation
+                [options]="navigationOptions"
+                [selected]="activeView"
+                columnsClass="grid-cols-2 lg:grid-cols-4"
+                ariaLabel="Logbook sections"
+                (selectedChange)="selectView($any($event))"
+        />
 
         <section class="space-y-4">
-            <form *ngIf="activeView === 'qsoEntry'" class="sticky top-3 z-20 rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200 sm:p-5" (ngSubmit)="saveEntry()">
+            <form *ngIf="activeView === 'qsoEntry'" class="ui-panel sticky top-3 z-20 ring-1 ring-slate-200" (ngSubmit)="saveEntry()">
                 <div class="flex items-start justify-between gap-3">
                     <div>
                         <div class="text-xs font-black uppercase tracking-wider text-slate-500">QSO entry</div>
                         <h2 class="mt-1 text-2xl font-black">{{ editingId ? 'Edit contact' : 'New contact' }} for {{ activeLogbook.name }}</h2>
                     </div>
-                    <button type="button" class="min-h-10 rounded-xl bg-slate-100 px-4 text-sm font-black text-slate-700 hover:bg-slate-200" (click)="clearForm()">Clear</button>
+                    <button type="button" class="ui-button-muted" (click)="clearForm()">Clear</button>
                 </div>
 
                 <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
@@ -177,7 +129,7 @@
                     </label>
                 </div>
 
-                <button type="submit" class="mt-4 min-h-12 w-full rounded-xl bg-slate-950 px-5 text-sm font-black text-white hover:bg-slate-800">{{ editingId ? 'Update QSO' : 'Add QSO' }}</button>
+                <button type="submit" class="ui-button-secondary mt-4 min-h-12 w-full">{{ editingId ? 'Update QSO' : 'Add QSO' }}</button>
             </form>
 
             <div *ngIf="activeView === 'sessionLog'" class="rounded-2xl bg-white p-4 shadow-xl sm:p-5">
@@ -193,7 +145,7 @@
                     </div>
                 </div>
 
-                <div *ngIf="!entries.length" class="mt-4 rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm font-semibold text-slate-500">No QSOs yet.</div>
+                <div *ngIf="!entries.length" class="ui-empty-state mt-4">No QSOs yet.</div>
 
                 <div *ngIf="sstQsoCount" class="mt-4 grid gap-2 sm:grid-cols-4">
                     <div class="rounded-xl bg-slate-100 px-4 py-3">
@@ -303,8 +255,8 @@
             </div>
 
             <div class="rounded-2xl bg-white p-4 shadow-xl sm:p-5">
-                <div *ngIf="potaError" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">{{ potaError }}</div>
-                <div *ngIf="!potaError && !potaRows.length" class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm font-semibold text-slate-500">Load spots to see nearby activators.</div>
+                <div *ngIf="potaError" class="ui-error" role="alert">{{ potaError }}</div>
+                <div *ngIf="!potaError && !potaRows.length" class="ui-empty-state">Load spots to see nearby activators.</div>
 
                 <div *ngIf="potaRows.length" class="overflow-x-auto">
                     <table class="w-full min-w-[880px] border-separate border-spacing-0 text-left text-sm">
@@ -361,8 +313,8 @@
             </div>
 
             <div class="rounded-2xl bg-white p-4 shadow-xl sm:p-5">
-                <div *ngIf="dxSummitError" class="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">{{ dxSummitError }}</div>
-                <div *ngIf="!dxSummitRows.length" class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm font-semibold text-slate-500">Fetch recent DX Summit spots or paste copied spots/JSON to parse them.</div>
+                <div *ngIf="dxSummitError" class="ui-error mb-4" role="alert">{{ dxSummitError }}</div>
+                <div *ngIf="!dxSummitRows.length" class="ui-empty-state">Fetch recent DX Summit spots or paste copied spots/JSON to parse them.</div>
 
                 <div *ngIf="dxSummitRows.length" class="overflow-x-auto">
                     <table class="w-full min-w-[840px] border-separate border-spacing-0 text-left text-sm">

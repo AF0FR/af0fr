@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Output } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ClubStatus } from '../models/club-member.model';
 import { Station } from '../models/station.model';
@@ -7,6 +7,7 @@ import { Station } from '../models/station.model';
 @Component({
     selector: 'checkin-form',
     standalone: true,
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [CommonModule, ReactiveFormsModule],
     templateUrl: './checkin-form.component.html',
 })
