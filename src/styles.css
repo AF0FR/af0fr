@@ -21,7 +21,7 @@
   margin-inline: auto;
   padding: 0.11in;
   display: grid;
-  grid-template-rows: auto minmax(0, 1.5in) minmax(0, 0.8in) minmax(0, 0.63in);
+  grid-template-rows: auto minmax(0, 1.37in) minmax(0, 0.81in) minmax(0, 0.75in);
   gap: 0.045in;
   overflow: hidden;
   border: 1px solid #111;
@@ -33,27 +33,41 @@
 
 .cw-cheat-card-stack { display: grid; gap: 1.25rem; }
 .cw-cheat-card, .cw-cheat-card * { box-sizing: border-box; }
-.cw-cheat-card > h2 { margin: 0; font-size: 10.5pt; line-height: 1; text-align: center; letter-spacing: .35px; }
-.cw-cheat-card > h2 span { font-size: 5.8pt; font-weight: normal; letter-spacing: 0; }
+.cw-cheat-card > h2 { margin: 0; font-size: 11pt; line-height: 1; text-align: center; letter-spacing: .3px; }
+.cw-cheat-card > h2 span { font-size: 6.1pt; font-weight: normal; letter-spacing: 0; }
 .cw-cheat-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: .05in; min-height: 0; }
 .cw-cheat-flow { display: grid; grid-template-columns: 1.44fr 1fr; gap: .05in; min-height: 0; }
 .cw-cheat-box { min-height: 0; overflow: hidden; border: 1px solid #222; padding: .04in .05in; }
-.cw-cheat-box h3 { margin: 0 0 .025in; padding-bottom: .018in; border-bottom: 1px solid #777; font-size: 7.2pt; line-height: 1; text-align: center; text-transform: uppercase; }
-.cw-cheat-box p { margin: 0 0 .018in; font-size: 5.7pt; line-height: 1.1; }
-.cw-cheat-card code { font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; font-size: 5.55pt; white-space: pre-wrap; }
-.cw-cheat-block { margin: .018in 0 0; font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; font-size: 5.45pt; line-height: 1.1; white-space: pre-line; }
-.cw-cheat-flow .cw-cheat-block { font-size: 5.5pt; }
-.cw-cheat-topic-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .015in .045in; font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; font-size: 5.45pt; line-height: 1.08; }
-.cw-cheat-note { margin-top: .015in; font-size: 4.8pt; line-height: 1; text-align: center; }
-.cw-cheat-quick { display: grid; grid-template-columns: 1fr 1fr; gap: .012in .05in; font-size: 5.25pt; line-height: 1.08; }
+.cw-cheat-box h3 { margin: 0 0 .025in; padding-bottom: .018in; border-bottom: 1px solid #777; font-size: 7.7pt; line-height: 1; text-align: center; text-transform: uppercase; }
+.cw-cheat-box p { margin: 0 0 .024in; font-size: 6.5pt; line-height: 1.18; }
+.cw-cheat-card code { font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; font-size: 6.25pt; white-space: pre-wrap; }
+.cw-cheat-block { margin: .024in 0 0; font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; font-size: 6.25pt; line-height: 1.19; white-space: pre-line; }
+.cw-cheat-transmission { border-left: 2px solid #777; padding-left: .04in; }
+.cw-cheat-transmission + p { margin-top: .025in; }
+.cw-cheat-transmission .cw-cheat-block { margin-top: 0; }
+.cw-cheat-transmission p:last-child { margin-bottom: 0; }
+.cw-cheat-flow .cw-cheat-block { font-size: 6.2pt; }
+.cw-cheat-topic-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .022in .045in; font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; font-size: 6.15pt; line-height: 1.12; }
+.cw-cheat-note { margin-top: .025in; font-size: 5.45pt; line-height: 1; text-align: center; }
+.cw-cheat-quick { display: grid; grid-template-columns: 1fr 1fr; gap: .02in .05in; font-size: 5.95pt; line-height: 1.12; }
 .cw-cheat-quick div { white-space: nowrap; }
 .cw-cheat-quick b { font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; }
-.cw-cheat-back { grid-template-rows: auto minmax(0, 1in) minmax(0, 0.99in) minmax(0, 0.9in); }
-.cw-cheat-copy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .035in .08in; padding-top: .015in; font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; font-size: 5.65pt; line-height: 1.15; }
-.cw-cheat-back-middle { display: grid; grid-template-columns: 1.55fr 1fr; gap: .05in; min-height: 0; }
-.cw-cheat-back-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: .05in; min-height: 0; }
-.cw-cheat-small { font-size: 5.25pt; line-height: 1.2; }
+.cw-cheat-back { grid-template-rows: auto minmax(0, 1.15in) minmax(0, 0.8in) minmax(0, 0.94in); }
+.cw-cheat-copy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .045in .08in; padding-top: .025in; font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; font-size: 6.35pt; line-height: 1.17; }
+.cw-cheat-back-top { display: grid; grid-template-columns: 1.3fr .75fr .95fr; gap: .05in; min-height: 0; }
+.cw-cheat-back-middle { display: grid; min-height: 0; }
+.cw-cheat-back-bottom { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .05in; min-height: 0; }
+.cw-cheat-small { font-size: 6.05pt; line-height: 1.25; }
 .cw-cheat-small b { font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; }
+.cw-cheat-recovery-grid { display: grid; grid-template-columns: 1fr 1fr 1.25fr; gap: .07in; font-size: 6pt; line-height: 1.28; }
+.cw-cheat-recovery-grid b { font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; }
+.cw-cheat-list { display: grid; gap: .014in; font-size: 5.45pt; line-height: 1.08; }
+.cw-cheat-list b { font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; }
+.cw-cheat-symbols { display: grid; grid-template-columns: 1fr 1fr; gap: .045in .08in; padding: .02in .03in 0; }
+.cw-cheat-symbols div { display: grid; grid-template-columns: .2in auto; align-items: baseline; justify-content: start; gap: .025in; }
+.cw-cheat-symbols b { font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; font-size: 7.2pt; white-space: nowrap; }
+.cw-cheat-symbols b::after { content: " |"; font-weight: 400; }
+.cw-cheat-symbols code { display: inline-block; font-size: 7.2pt; font-weight: 700; letter-spacing: 0; word-spacing: 0; white-space: nowrap; }
 
 @media print {
   @page { size: 5.5in 3.5in; margin: 0; }
