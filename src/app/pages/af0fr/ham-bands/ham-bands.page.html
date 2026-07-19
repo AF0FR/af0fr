@@ -1,0 +1,87 @@
+<main class="min-h-screen bg-orange-500 px-4 py-8 text-slate-950 sm:px-6 sm:py-12">
+    <div class="mx-auto max-w-7xl">
+        <a routerLink="/" class="mb-6 inline-flex min-h-10 items-center rounded-lg bg-slate-950 px-4 text-sm font-black text-white transition hover:bg-slate-800">
+            <span aria-hidden="true" class="mr-2">←</span> AF0FR toolbox
+        </a>
+
+        <header class="overflow-hidden rounded-xl bg-slate-950 p-6 text-white shadow-2xl sm:p-9">
+            <div class="text-xs font-black uppercase tracking-[0.28em] text-orange-300">AF0FR field reference</div>
+            <div class="mt-4 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+                <div>
+                    <h1 class="text-4xl font-black tracking-tight sm:text-6xl">Ham Bands</h1>
+                    <p class="mt-3 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">A focused U.S. amateur privilege chart for the 80, 40, 20, and 15 meter bands.</p>
+                </div>
+                <div class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
+                    <div class="flex items-center gap-2"><span class="h-3 w-6 rounded-sm bg-red-600 ring-1 ring-white/30"></span> RTTY / data</div>
+                    <div class="flex items-center gap-2"><span class="h-3 w-6 rounded-sm bg-emerald-600 ring-1 ring-white/30"></span> Phone / image</div>
+                    <div class="flex items-center gap-2"><span class="h-3 w-6 rounded-sm bg-[repeating-linear-gradient(135deg,#fff_0,#fff_3px,#334155_3px,#334155_5px)] ring-1 ring-white/30"></span> CW only</div>
+                </div>
+            </div>
+        </header>
+
+        <section class="mt-6 space-y-5" aria-label="Band privilege charts">
+            @for (band of bands; track band.name) {
+                <article class="overflow-hidden rounded-xl bg-white shadow-xl ring-1 ring-slate-950/10">
+                    <div class="flex flex-wrap items-baseline justify-between gap-2 border-b border-slate-200 px-5 py-4 sm:px-7">
+                        <h2 class="text-2xl font-black capitalize sm:text-3xl">{{ band.name }}</h2>
+                        <div class="font-mono text-sm font-bold text-slate-500">{{ band.start | number:'1.3-3' }}–{{ band.end | number:'1.3-3' }} MHz</div>
+                    </div>
+
+                    <div class="overflow-x-auto px-5 pb-6 pt-5 sm:px-7">
+                        <div class="min-w-[700px]">
+                            <div class="grid grid-cols-[155px_1fr] gap-x-4">
+                                <div></div>
+                                <div class="relative mb-2 h-12 border-b-2 border-slate-950" aria-hidden="true">
+                                    @for (tick of band.ticks; track tick; let tickIndex = $index) {
+                                        <div class="absolute bottom-0 h-2 border-l border-slate-500" [style.left.%]="position(tick, band)"></div>
+                                        <div class="absolute -translate-x-1/2 font-mono text-[11px] font-bold text-slate-600"
+                                             [class.bottom-3]="tickIndex % 2 === 0"
+                                             [class.bottom-7]="tickIndex % 2 !== 0"
+                                             [style.left.%]="position(tick, band)">{{ tick | number:'1.3-3' }}</div>
+                                    }
+                                </div>
+
+                                @for (row of band.rows; track row.license) {
+                                    <div class="flex h-11 items-center justify-end text-right text-xs font-black uppercase tracking-wide text-slate-700">
+                                        <span>{{ row.license }}<small class="block normal-case tracking-normal text-slate-500">{{ row.power }}</small></span>
+                                    </div>
+                                    <div class="relative my-1 h-9 bg-slate-100 ring-1 ring-inset ring-slate-300">
+                                        @for (segment of row.segments; track segment.start + '-' + segment.end + '-' + segment.mode) {
+                                            <div class="absolute inset-y-0 border-x border-slate-950/60"
+                                                 [class.bg-red-600]="segment.mode === 'data'"
+                                                 [class.bg-emerald-600]="segment.mode === 'phone'"
+                                                 [class.bg-[repeating-linear-gradient(135deg,#fff_0,#fff_4px,#334155_4px,#334155_6px)]]="segment.mode === 'cw'"
+                                                 [style.left.%]="position(segment.start, band)"
+                                                 [style.width.%]="width(segment, band)"
+                                                 [attr.title]="(segment.start | number:'1.3-3') + '–' + (segment.end | number:'1.3-3') + ' MHz · ' + modeLabel(segment.mode)">
+                                                <span class="sr-only">{{ segment.start }} to {{ segment.end }} MHz, {{ modeLabel(segment.mode) }}</span>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (band.note) {
+                        <div class="border-t border-orange-200 bg-orange-50 px-5 py-4 text-sm leading-6 text-slate-700 sm:px-7">
+                            <strong class="text-slate-950">40 meter regional note:</strong> {{ band.note }}
+                        </div>
+                    }
+                </article>
+            }
+        </section>
+
+        <aside class="mt-6 grid gap-4 rounded-xl bg-slate-950 p-6 text-white shadow-xl md:grid-cols-2">
+            <div>
+                <h2 class="text-lg font-black">Reading the chart</h2>
+                <p class="mt-2 text-sm leading-6 text-slate-300">CW operation is permitted throughout all amateur bands. Segment colors show additional mode privileges. E = Amateur Extra, A = Advanced, G = General, T = Technician, and N = Novice.</p>
+            </div>
+            <div>
+                <h2 class="text-lg font-black">Power &amp; source</h2>
+                <p class="mt-2 text-sm leading-6 text-slate-300">Use the minimum transmitter power necessary. Unless noted, no station may exceed 1.5 kW PEP. Data is based on the ARRL U.S. Amateur Radio Bands chart, revision 1/16/2026.</p>
+                <a class="mt-3 inline-flex font-bold text-orange-300 underline decoration-orange-300/50 underline-offset-4 hover:text-orange-200" href="https://www.arrl.org/files/file/Regulatory/Band%20Chart/Hambands4_Color_17x11.pdf" target="_blank" rel="noopener noreferrer">Open the official ARRL chart <span class="sr-only">(opens in a new tab)</span> ↗</a>
+            </div>
+        </aside>
+    </div>
+</main>

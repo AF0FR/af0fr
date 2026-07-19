@@ -28,6 +28,10 @@ export const routes: Routes = [
         providers: [LogbookDataService],
         loadComponent: () => import('./pages/af0fr_logbook/af0fr_logbook.page').then(module => module.Af0frLogbookPage),
     },
+    {
+        path: 'ham-bands',
+        loadComponent: () => import('./pages/af0fr/ham-bands/ham-bands.page').then(module => module.HamBandsPage),
+    },
 
     // Transitional aliases for links and bookmarks from iftaylor.com/AF0FR.
     { path: 'af0fr', redirectTo: '', pathMatch: 'full' },
@@ -36,11 +40,13 @@ export const routes: Routes = [
     { path: 'af0fr/cw_qso', redirectTo: 'cw', pathMatch: 'full' },
     { path: 'af0fr/signal', redirectTo: 'signal', pathMatch: 'full' },
     { path: 'af0fr/logbook', redirectTo: 'logbook', pathMatch: 'full' },
+    { path: 'af0fr/ham-bands', redirectTo: 'ham-bands', pathMatch: 'full' },
     { path: 'AF0FR', redirectTo: '', pathMatch: 'full' },
     { path: 'AF0FR/net_control', redirectTo: 'net-control', pathMatch: 'full' },
     { path: 'AF0FR/card_demo', redirectTo: 'qsl-card', pathMatch: 'full' },
     { path: 'AF0FR/cw_qso', redirectTo: 'cw', pathMatch: 'full' },
     { path: 'AF0FR/signal', redirectTo: 'signal', pathMatch: 'full' },
     { path: 'AF0FR/logbook', redirectTo: 'logbook', pathMatch: 'full' },
+    { path: 'AF0FR/ham-bands', redirectTo: 'ham-bands', pathMatch: 'full' },
     { path: '**', redirectTo: '' },
 ];
