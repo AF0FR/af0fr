@@ -9,6 +9,7 @@ export interface SegmentedNavigationOption {
     selector: 'app-segmented-navigation',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
+    host: { class: 'block pb-2' },
     templateUrl: './segmented-navigation.component.html',
 })
 export class SegmentedNavigation {
