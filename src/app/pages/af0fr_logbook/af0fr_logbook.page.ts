@@ -22,7 +22,6 @@ import {
     SegmentedNavigationOption,
 } from '../../shared/ui/segmented-navigation/segmented-navigation.component';
 import { LogbookDataService } from './services/logbook-data.service';
-import { environment } from '../../../environments/environment';
 
 @Component({
     selector: 'af0fr-logbook',
@@ -45,8 +44,6 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
     sessionStartedAt = new Date();
     activationActive = false;
     myParkReference = '';
-    nearestParks: Array<PotaPark & { miles: number }> = [];
-    parkLookupLoading = false;
     cockpitMessage = '';
     lastRemovedEntry: LogbookEntry | null = null;
     private readonly dataService = inject(LogbookDataService);
@@ -104,7 +101,7 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
         this.restoreLogbooks();
         this.restoreCockpitState();
         this.cockpitTimer = setInterval(() => this.utcNow = new Date(), 1000);
-        if (this.cockpit) void this.loadNearestParks();
+        if (this.cockpit) void this.loadPotaSpots();
     }
 
     ngOnDestroy(): void {
@@ -144,28 +141,6 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
     updateCockpitSetting(key: 'myParkReference', value: string): void {
         this[key] = value.trim().toUpperCase();
         this.persistCockpitState();
-    }
-
-    async loadNearestParks(): Promise<void> {
-        this.parkLookupLoading = true;
-        try {
-            const oakvilleLat = 38.47;
-            const oakvilleLon = -90.30;
-            try {
-                if (!environment.production) throw new Error('Use the direct POTA catalog during local development.');
-                this.nearestParks = await this.dataService.getNearestPotaParks(oakvilleLat, oakvilleLon, 12);
-            } catch (backendError) {
-                console.warn('Nearest-parks backend failed; using direct POTA catalog', backendError);
-                const parks = await this.dataService.getPotaParks('US');
-                this.nearestParks = [...parks.values()].map(park => ({ ...park, miles: Math.round(this.haversineMiles(oakvilleLat, oakvilleLon, Number(park.latitude), Number(park.longitude))) })).filter(park => Number.isFinite(park.miles)).sort((a, b) => a.miles - b.miles).slice(0, 12);
-            }
-        } catch { this.cockpitMessage = 'Park lookup unavailable.'; }
-        finally { this.parkLookupLoading = false; }
-    }
-
-    usePark(park: PotaPark): void {
-        this.form.parkReference = String(park.reference || '').toUpperCase();
-        this.form.qth = String(park.locationDesc || '');
     }
 
     hasWorkedCall(callsign: string): boolean { return this.entries.some(entry => entry.callsign === callsign); }

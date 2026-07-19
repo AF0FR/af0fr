@@ -38,11 +38,6 @@ export class LogbookDataService {
         );
     }
 
-    getNearestPotaParks(lat: number, lon: number, limit = 12): Promise<Array<PotaPark & { miles: number }>> {
-        const url = `${environment.apiUrl}/pota/parks/nearby?lat=${encodeURIComponent(String(lat))}&lon=${encodeURIComponent(String(lon))}&limit=${encodeURIComponent(String(limit))}`;
-        return firstValueFrom(this.http.get<Array<PotaPark & { miles: number }>>(url));
-    }
-
     async getDxSummitSpots(directUrl: string, requestedLimit: number): Promise<DxSummitApiSpot[]> {
         const limit = Math.max(1, Math.min(Number(requestedLimit) || 50, 200));
         const backendUrl = `${environment.apiUrl}/dx-summit/spots?limit=${encodeURIComponent(String(limit))}`;
