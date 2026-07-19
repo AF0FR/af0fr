@@ -22,6 +22,7 @@ import {
     SegmentedNavigationOption,
 } from '../../shared/ui/segmented-navigation/segmented-navigation.component';
 import { LogbookDataService } from './services/logbook-data.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
     selector: 'af0fr-logbook',
@@ -151,6 +152,7 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
             const oakvilleLat = 38.47;
             const oakvilleLon = -90.30;
             try {
+                if (!environment.production) throw new Error('Use the direct POTA catalog during local development.');
                 this.nearestParks = await this.dataService.getNearestPotaParks(oakvilleLat, oakvilleLon, 12);
             } catch (backendError) {
                 console.warn('Nearest-parks backend failed; using direct POTA catalog', backendError);
