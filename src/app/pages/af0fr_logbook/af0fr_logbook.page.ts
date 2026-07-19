@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, Input, OnInit } from '@angular/core';
+import { Component, inject, Input, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LogbookSelector } from './logbook-selector/logbook-selector.component';
 import {
@@ -35,9 +35,19 @@ import { LogbookDataService } from './services/logbook-data.service';
     ],
     templateUrl: './af0fr_logbook.page.html',
 })
-export class Af0frLogbookPage implements OnInit {
+export class Af0frLogbookPage implements OnInit, OnDestroy {
     @Input() embedded = false;
     @Input() cockpit = false;
+    private cockpitTimer?: ReturnType<typeof setInterval>;
+    readonly cockpitStateKey = 'af0fr-ops-cockpit';
+    utcNow = new Date();
+    sessionStartedAt = new Date();
+    activationActive = false;
+    myParkReference = '';
+    nearestParks: Array<PotaPark & { miles: number }> = [];
+    parkLookupLoading = false;
+    cockpitMessage = '';
+    lastRemovedEntry: LogbookEntry | null = null;
     private readonly dataService = inject(LogbookDataService);
     readonly navigationOptions: SegmentedNavigationOption[] = [
         { value: 'qsoEntry', label: 'QSO entry' },
@@ -91,6 +101,91 @@ export class Af0frLogbookPage implements OnInit {
         this.restoreProfile();
         this.restoreContestMode();
         this.restoreLogbooks();
+        this.restoreCockpitState();
+        this.cockpitTimer = setInterval(() => this.utcNow = new Date(), 1000);
+        if (this.cockpit) void this.loadNearestParks();
+    }
+
+    ngOnDestroy(): void {
+        if (this.cockpitTimer) clearInterval(this.cockpitTimer);
+    }
+
+    get sessionMinutes(): number { return Math.max(0, Math.floor((this.utcNow.getTime() - this.sessionStartedAt.getTime()) / 60000)); }
+    get uniqueCallCount(): number { return new Set(this.entries.map(entry => entry.callsign)).size; }
+    get p2pCount(): number { return this.entries.filter(entry => !!entry.parkReference).length; }
+    get sessionRate(): number { return this.sessionMinutes ? Math.round(this.qsoCount * 60 / this.sessionMinutes) : this.qsoCount; }
+    get bandSummary(): string { return [...new Set(this.entries.map(entry => entry.band).filter(Boolean))].join(', ') || '—'; }
+    get stateSummary(): number { return new Set(this.entries.map(entry => entry.state).filter(Boolean)).size; }
+    get callsignHistory(): string[] { return [...new Set(this.entries.map(entry => entry.callsign))].slice(0, 100); }
+    get suggestedFrequencies(): string[] {
+        const suggestions: Record<string, string[]> = { '80m': ['3.560', '3.950'], '40m': ['7.030', '7.060', '7.200'], '20m': ['14.060', '14.300'], '15m': ['21.060', '21.300'], '10m': ['28.060', '28.400'] };
+        return suggestions[this.form.band] ?? [];
+    }
+    get frequencyWarning(): string {
+        if (!this.form.frequency) return '';
+        const derived = this.bandFromFrequencyMhz(this.form.frequency);
+        if (!derived) return 'Frequency is outside the supported amateur bands.';
+        return derived !== this.form.band ? `Frequency is on ${derived}, but ${this.form.band} is selected.` : '';
+    }
+
+    updateCockpitFrequency(value: string): void {
+        this.form.frequency = value;
+        const band = this.bandFromFrequencyMhz(value);
+        if (band) this.form.band = band;
+    }
+
+    startActivation(): void {
+        this.activationActive = !this.activationActive;
+        if (this.activationActive) this.sessionStartedAt = new Date();
+        this.persistCockpitState();
+    }
+
+    updateCockpitSetting(key: 'myParkReference', value: string): void {
+        this[key] = value.trim().toUpperCase();
+        this.persistCockpitState();
+    }
+
+    async loadNearestParks(): Promise<void> {
+        this.parkLookupLoading = true;
+        try {
+            const oakvilleLat = 38.47;
+            const oakvilleLon = -90.30;
+            try {
+                this.nearestParks = await this.dataService.getNearestPotaParks(oakvilleLat, oakvilleLon, 12);
+            } catch (backendError) {
+                console.warn('Nearest-parks backend failed; using direct POTA catalog', backendError);
+                const parks = await this.dataService.getPotaParks('US');
+                this.nearestParks = [...parks.values()].map(park => ({ ...park, miles: Math.round(this.haversineMiles(oakvilleLat, oakvilleLon, Number(park.latitude), Number(park.longitude))) })).filter(park => Number.isFinite(park.miles)).sort((a, b) => a.miles - b.miles).slice(0, 12);
+            }
+        } catch { this.cockpitMessage = 'Park lookup unavailable.'; }
+        finally { this.parkLookupLoading = false; }
+    }
+
+    usePark(park: PotaPark): void {
+        this.form.parkReference = String(park.reference || '').toUpperCase();
+        this.form.qth = String(park.locationDesc || '');
+    }
+
+    hasWorkedCall(callsign: string): boolean { return this.entries.some(entry => entry.callsign === callsign); }
+
+    undoRemove(): void {
+        if (!this.lastRemovedEntry) return;
+        this.updateActiveEntries([this.lastRemovedEntry, ...this.entries]);
+        this.lastRemovedEntry = null;
+    }
+
+    private persistCockpitState(): void {
+        localStorage.setItem(this.cockpitStateKey, JSON.stringify({ activationActive: this.activationActive, myParkReference: this.myParkReference, sessionStartedAt: this.sessionStartedAt.toISOString() }));
+    }
+
+    private restoreCockpitState(): void {
+        try {
+            const state = JSON.parse(localStorage.getItem(this.cockpitStateKey) || '{}');
+            this.activationActive = !!state.activationActive;
+            this.myParkReference = String(state.myParkReference || '').toUpperCase();
+            const started = new Date(state.sessionStartedAt || Date.now());
+            this.sessionStartedAt = Number.isNaN(started.getTime()) ? new Date() : started;
+        } catch { /* Keep defaults for malformed local state. */ }
     }
 
     get activeLogbook(): NamedLogbook {
@@ -237,6 +332,11 @@ export class Af0frLogbookPage implements OnInit {
             return;
         }
 
+        if (this.cockpit && !this.editingId) {
+            const duplicate = this.entries.find(entry => entry.callsign === normalized.callsign && entry.qsoDate === normalized.qsoDate && entry.band === normalized.band && entry.mode === normalized.mode);
+            if (duplicate && !window.confirm(`${normalized.callsign} is already in this session on ${normalized.band} ${normalized.mode}. Log it again?`)) return;
+        }
+
         if (normalized.contest === 'SST') {
             const exchangeError = this.sstExchangeError(normalized);
             if (exchangeError) {
@@ -268,6 +368,7 @@ export class Af0frLogbookPage implements OnInit {
         const target = this.entries.find((entry) => entry.id === entryId);
         if (!window.confirm(`Delete QSO with ${target?.callsign ?? 'this station'}?`)) return;
 
+        this.lastRemovedEntry = target ? { ...target } : null;
         this.updateActiveEntries(this.entries.filter((entry) => entry.id !== entryId));
 
         if (this.editingId === entryId) {
@@ -723,6 +824,8 @@ export class Af0frLogbookPage implements OnInit {
             ['STX_STRING', entry.contest === 'SST' ? this.sstSentExchange() : ''],
             ['SIG', entry.parkReference ? 'POTA' : ''],
             ['SIG_INFO', entry.parkReference],
+            ['MY_SIG', this.myParkReference ? 'POTA' : ''],
+            ['MY_SIG_INFO', this.myParkReference],
             ['COMMENT', entry.notes],
         ];
 

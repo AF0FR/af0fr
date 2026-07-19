@@ -2,18 +2,25 @@
     @if (cockpit) {
     <section class="overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-slate-950/10" aria-label="Operating log">
         <header class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-950 px-3 py-2 text-white">
-            <div class="flex items-center gap-3"><h2 class="text-sm font-black uppercase tracking-wider">QSO Log</h2><span class="rounded-full bg-orange-500 px-2 py-0.5 text-[10px] font-black">{{ qsoCount }} QSOs</span></div>
+            <div class="flex flex-wrap items-center gap-3"><h2 class="text-sm font-black uppercase tracking-wider">QSO Log</h2><span class="font-mono text-xs font-black text-orange-400">{{ utcNow | date:'HH:mm:ss':'UTC' }}Z</span><span class="rounded-full bg-orange-500 px-2 py-0.5 text-[10px] font-black">{{ qsoCount }} QSOs</span><span class="text-[10px] font-bold text-slate-400">{{ sessionMinutes }}m · {{ sessionRate }}/hr</span></div>
             <label class="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-slate-400">Session
                 <select class="h-8 max-w-44 rounded-lg border border-slate-700 bg-slate-900 px-2 text-xs font-bold normal-case text-white" [ngModel]="activeLogId" (ngModelChange)="selectLogbook($event)" name="cockpitLogbook">
                     <option *ngFor="let logbook of logbooks" [value]="logbook.id">{{ logbook.name }}</option>
                 </select>
             </label>
         </header>
+        <div class="grid grid-cols-2 gap-px bg-slate-300 text-xs sm:grid-cols-4 lg:grid-cols-[auto_1fr_1fr_1fr_1fr]">
+            <button type="button" class="px-3 py-2 font-black text-white" [class.bg-emerald-700]="activationActive" [class.bg-slate-700]="!activationActive" (click)="startActivation()">{{ activationActive ? '● Activation live' : 'Start activation' }}</button>
+            <label class="bg-white px-2 py-1"><span class="block text-[8px] font-black uppercase text-slate-400">My park</span><input class="w-full bg-transparent font-mono font-black uppercase outline-none" [ngModel]="myParkReference" (ngModelChange)="updateCockpitSetting('myParkReference', $event)" placeholder="US-0000"></label>
+            <div class="bg-white px-2 py-1"><span class="block text-[8px] font-black uppercase text-slate-400">Operator / grid</span><strong>{{ operatorCall }} · {{ stationGrid }}</strong></div>
+            <div class="bg-white px-2 py-1"><span class="block text-[8px] font-black uppercase text-slate-400">Bands / states</span><strong>{{ bandSummary }} · {{ stateSummary }} states</strong></div>
+            <div class="bg-white px-2 py-1"><span class="block text-[8px] font-black uppercase text-slate-400">Unique / P2P</span><strong>{{ uniqueCallCount }} calls · {{ p2pCount }} P2P</strong></div>
+        </div>
 
         <form class="border-b border-slate-200 bg-slate-100 p-2" (ngSubmit)="saveEntry()">
             <div class="grid grid-cols-2 gap-1.5 md:grid-cols-[1.5fr_.8fr_.75fr_.75fr_.7fr_.6fr_.6fr_auto]">
-                <label class="col-span-2 md:col-span-1"><span class="sr-only">Callsign</span><input class="h-10 w-full rounded-lg border-2 border-slate-400 bg-white px-2 font-mono text-lg font-black uppercase outline-none focus:border-orange-500" [(ngModel)]="form.callsign" name="cockpitCallsign" placeholder="CALLSIGN" required autocomplete="off" autocorrect="off" spellcheck="false"></label>
-                <label><span class="sr-only">Frequency MHz</span><input class="h-10 w-full rounded-lg border border-slate-300 bg-white px-2 font-mono text-sm font-bold outline-none focus:border-orange-500" [(ngModel)]="form.frequency" name="cockpitFrequency" placeholder="MHz"></label>
+                <label class="col-span-2 md:col-span-1"><span class="sr-only">Callsign</span><input class="h-10 w-full rounded-lg border-2 border-slate-400 bg-white px-2 font-mono text-lg font-black uppercase outline-none focus:border-orange-500" [(ngModel)]="form.callsign" name="cockpitCallsign" placeholder="CALLSIGN" list="callsign-history" required autocomplete="off" autocorrect="off" spellcheck="false"><datalist id="callsign-history"><option *ngFor="let callsign of callsignHistory" [value]="callsign"></option></datalist></label>
+                <label><span class="sr-only">Frequency MHz</span><input class="h-10 w-full rounded-lg border border-slate-300 bg-white px-2 font-mono text-sm font-bold outline-none focus:border-orange-500" [ngModel]="form.frequency" (ngModelChange)="updateCockpitFrequency($event)" name="cockpitFrequency" placeholder="MHz" list="frequency-suggestions"><datalist id="frequency-suggestions"><option *ngFor="let frequency of suggestedFrequencies" [value]="frequency"></option></datalist></label>
                 <label><span class="sr-only">Band</span><select class="h-10 w-full rounded-lg border border-slate-300 bg-white px-2 text-sm font-bold" [(ngModel)]="form.band" name="cockpitBand"><option *ngFor="let band of bands" [value]="band">{{ band }}</option></select></label>
                 <label><span class="sr-only">Mode</span><select class="h-10 w-full rounded-lg border border-slate-300 bg-white px-2 text-sm font-bold" [(ngModel)]="form.mode" name="cockpitMode"><option *ngFor="let mode of modes" [value]="mode">{{ mode }}</option></select></label>
                 <label><span class="sr-only">Name</span><input class="h-10 w-full rounded-lg border border-slate-300 bg-white px-2 text-sm font-semibold" [(ngModel)]="form.name" name="cockpitName" placeholder="Name"></label>
@@ -21,13 +28,15 @@
                 <label><span class="sr-only">RST received</span><input class="h-10 w-full rounded-lg border border-slate-300 bg-white px-2 text-center font-mono text-sm font-bold" [(ngModel)]="form.rstReceived" name="cockpitRstReceived" placeholder="Rcvd"></label>
                 <button class="h-10 rounded-lg bg-orange-500 px-4 text-sm font-black text-white hover:bg-orange-400" type="submit">{{ editingId ? 'Update' : 'Log' }}</button>
             </div>
-            <div class="mt-1.5 grid grid-cols-2 gap-1.5 md:grid-cols-[.9fr_.7fr_.6fr_2fr_auto]">
+            <div class="mt-1.5 grid grid-cols-2 gap-1.5 md:grid-cols-[.9fr_.7fr_.6fr_1fr_2fr_auto]">
                 <label><span class="sr-only">Date</span><input class="h-8 w-full rounded-lg border border-slate-300 bg-white px-2 text-xs font-semibold" [(ngModel)]="form.qsoDate" name="cockpitDate" type="date" required></label>
                 <label><span class="sr-only">UTC time</span><input class="h-8 w-full rounded-lg border border-slate-300 bg-white px-2 text-xs font-semibold" [(ngModel)]="form.timeOn" name="cockpitTime" type="time" required></label>
                 <label><span class="sr-only">State</span><input class="h-8 w-full rounded-lg border border-slate-300 bg-white px-2 text-xs font-bold uppercase" [(ngModel)]="form.state" name="cockpitState" placeholder="State"></label>
+                <label><span class="sr-only">Other park</span><input class="h-8 w-full rounded-lg border border-slate-300 bg-white px-2 font-mono text-xs font-bold uppercase" [(ngModel)]="form.parkReference" name="cockpitPark" placeholder="Other park"></label>
                 <label class="col-span-2 md:col-span-1"><span class="sr-only">Notes</span><input class="h-8 w-full rounded-lg border border-slate-300 bg-white px-2 text-xs font-semibold" [(ngModel)]="form.notes" name="cockpitNotes" placeholder="QTH, park, notes…"></label>
                 <button type="button" class="h-8 rounded-lg bg-white px-3 text-xs font-black text-slate-600 ring-1 ring-slate-300" (click)="clearForm()">Clear</button>
             </div>
+            <div *ngIf="frequencyWarning" class="mt-1 text-[10px] font-black text-red-700">⚠ {{ frequencyWarning }}</div>
         </form>
 
         <div class="max-h-[36rem] overflow-auto">
@@ -45,6 +54,14 @@
                     <tr *ngIf="sortedEntries.length === 0"><td colspan="8" class="px-4 py-8 text-center font-semibold text-slate-400">No contacts in this session yet.</td></tr>
                 </tbody>
             </table>
+        </div>
+        <div class="border-t border-slate-300 bg-white">
+            <section class="bg-white p-2">
+                <div class="flex flex-wrap items-center justify-between gap-2"><h3 class="text-[10px] font-black uppercase tracking-wider text-slate-500">POTA lookup &amp; live spots</h3><div class="flex flex-wrap gap-1"><button type="button" class="h-7 rounded bg-slate-100 px-2 text-[9px] font-black" (click)="undoRemove()" [disabled]="!lastRemovedEntry">Undo delete</button><button type="button" class="h-7 rounded bg-slate-950 px-2 text-[9px] font-black text-white" (click)="exportAdif()" [disabled]="exportDisabled">Export ADIF</button><select class="h-7 rounded border border-slate-300 bg-white px-1 text-[10px] font-bold" [(ngModel)]="potaBand"><option value="ANY">All bands</option><option *ngFor="let band of bands" [value]="band">{{ band }}</option></select><select class="h-7 rounded border border-slate-300 bg-white px-1 text-[10px] font-bold" [(ngModel)]="potaMode"><option value="ANY">All modes</option><option *ngFor="let mode of modes" [value]="mode">{{ mode }}</option></select><button class="h-7 rounded bg-slate-950 px-2 text-[10px] font-black text-white" type="button" (click)="loadPotaSpots()">{{ potaLoading ? 'Loading…' : 'Refresh' }}</button></div></div>
+                <div class="mt-1 overflow-hidden rounded border border-slate-200"><div class="flex items-center justify-between bg-slate-100 px-2 py-1"><strong class="text-[9px] uppercase tracking-wider text-slate-500">Closest QTH to Oakville, MO</strong><button type="button" class="text-[9px] font-black text-orange-700" (click)="loadNearestParks()">{{ parkLookupLoading ? 'Loading…' : 'Refresh' }}</button></div><div class="max-h-32 overflow-auto"><button *ngFor="let park of nearestParks" type="button" class="grid w-full grid-cols-[5.5rem_1fr_6rem_3.5rem] gap-1 border-t border-slate-100 px-2 py-1 text-left text-[10px] hover:bg-orange-50" (click)="usePark(park)"><strong class="font-mono">{{ park.reference }}</strong><span class="truncate">{{ park.name }}</span><span class="truncate text-slate-500">{{ park.locationDesc }}</span><span class="text-right font-bold">{{ park.miles }} mi</span></button><div *ngIf="!nearestParks.length && !parkLookupLoading" class="py-3 text-center text-[10px] text-slate-400">Nearest parks unavailable.</div></div></div>
+                <div *ngIf="potaError" class="mt-2 text-[10px] font-bold text-red-700">{{ potaError }}</div>
+                <div class="mt-1 max-h-40 overflow-auto divide-y divide-slate-100"><button *ngFor="let row of potaRows" type="button" class="grid w-full grid-cols-[5rem_4.5rem_1fr_3.5rem] gap-1 px-1 py-1 text-left text-[10px] hover:bg-orange-50" (click)="usePotaSpot(row)"><strong class="font-mono text-xs">{{ row.activator }} <span *ngIf="hasWorkedCall(row.activator)" class="text-emerald-700">✓</span></strong><span class="font-mono">{{ row.frequency }}</span><span class="truncate">{{ row.reference }} · {{ row.park }}</span><span class="text-right text-slate-500">{{ row.miles }}mi</span></button><div *ngIf="!potaRows.length && !potaLoading" class="py-4 text-center text-[10px] font-semibold text-slate-400">Refresh to load spots; click one to fill the QSO form.</div></div>
+            </section>
         </div>
     </section>
     }
