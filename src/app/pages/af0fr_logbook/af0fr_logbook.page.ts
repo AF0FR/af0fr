@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, Input, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LogbookSelector } from './logbook-selector/logbook-selector.component';
 import {
@@ -24,6 +24,7 @@ import {
 import { LogbookDataService } from './services/logbook-data.service';
 
 @Component({
+    selector: 'af0fr-logbook',
     standalone: true,
     imports: [
         CommonModule,
@@ -35,6 +36,8 @@ import { LogbookDataService } from './services/logbook-data.service';
     templateUrl: './af0fr_logbook.page.html',
 })
 export class Af0frLogbookPage implements OnInit {
+    @Input() embedded = false;
+    @Input() cockpit = false;
     private readonly dataService = inject(LogbookDataService);
     readonly navigationOptions: SegmentedNavigationOption[] = [
         { value: 'qsoEntry', label: 'QSO entry' },

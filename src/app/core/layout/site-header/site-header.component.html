@@ -1,11 +1,12 @@
 <header class="sticky top-0 z-[9999] py-2 bg-slate-900/80 backdrop-blur border-b border-white/10">
   <div class="max-w-7xl mx-auto flex justify-between items-center px-6">
     <a routerLink="/" class="text-white font-bold">AF0FR</a>
-    <div class="flex gap-4">
+    <nav class="flex items-center gap-2 text-sm sm:gap-4" aria-label="Primary navigation">
       <a routerLink="/" class="text-slate-300 hover:text-white">Home</a>
+      <a routerLink="/ops" class="rounded-lg bg-orange-500 px-3 py-1.5 font-black text-white hover:bg-orange-400">Ops</a>
       <a routerLink="/cw" class="text-slate-300 hover:text-white">CW</a>
-      <a routerLink="/logbook" class="text-slate-300 hover:text-white">Logbook</a>
-      <a routerLink="/ham-bands" class="text-slate-300 hover:text-white">Ham Bands</a>
-    </div>
+      <a routerLink="/logbook" class="hidden text-slate-300 hover:text-white sm:inline">Logbook</a>
+      <a routerLink="/ham-bands" class="hidden text-slate-300 hover:text-white md:inline">Ham Bands</a>
+    </nav>
   </div>
 </header>

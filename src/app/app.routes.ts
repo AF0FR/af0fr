@@ -29,6 +29,11 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/af0fr_logbook/af0fr_logbook.page').then(module => module.Af0frLogbookPage),
     },
     {
+        path: 'ops',
+        providers: [LogbookDataService],
+        loadComponent: () => import('./pages/ops/ops-dashboard.page').then(module => module.OpsDashboardPage),
+    },
+    {
         path: 'ham-bands',
         loadComponent: () => import('./pages/af0fr/ham-bands/ham-bands.page').then(module => module.HamBandsPage),
     },

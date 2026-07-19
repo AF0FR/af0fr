@@ -1,5 +1,6 @@
-<main class="min-h-screen bg-orange-500 px-4 py-8 text-slate-950 sm:px-6 sm:py-12">
+<main class="text-slate-950" [class.min-h-screen]="!embedded" [class.bg-orange-500]="!embedded" [class.px-4]="!embedded" [class.py-8]="!embedded" [class.sm:px-6]="!embedded" [class.sm:py-12]="!embedded">
     <div class="mx-auto max-w-7xl">
+        @if (!embedded && !compact) {
         <a routerLink="/" class="mb-6 inline-flex min-h-10 items-center rounded-lg bg-slate-950 px-4 text-sm font-black text-white transition hover:bg-slate-800">
             <span aria-hidden="true" class="mr-2">←</span> AF0FR toolbox
         </a>
@@ -20,6 +21,33 @@
                 </div>
             </div>
         </header>
+        }
+
+        @if (compact) {
+        <section class="overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-slate-950/10" aria-label="Compact band privileges">
+            <header class="flex items-center justify-between gap-2 bg-slate-950 px-3 py-2 text-white"><h2 class="text-sm font-black uppercase tracking-wider">Band Map</h2><span class="text-[9px] font-bold uppercase tracking-wider text-slate-400">US privileges · MHz</span></header>
+            <div class="divide-y divide-slate-200 p-2">
+                @for (band of bands; track band.name) {
+                    <div class="grid grid-cols-[3.25rem_1fr] items-center gap-2 py-1.5">
+                        <div><div class="text-sm font-black">{{ bandLabel(band.name) }}</div><div class="font-mono text-[8px] text-slate-500">{{ band.start }}–{{ band.end }}</div></div>
+                        <div>
+                        <div class="relative h-3 font-mono text-[7px] font-bold text-slate-500" aria-hidden="true">
+                            @for (tick of band.ticks; track tick; let first = $first; let last = $last) {
+                            <span class="absolute top-0" [style.left.%]="position(tick, band)" [style.transform]="first ? 'none' : last ? 'translateX(-100%)' : 'translateX(-50%)'">{{ tick }}</span>
+                            }
+                        </div>
+                        <div class="relative h-7 overflow-hidden rounded border border-slate-950 bg-slate-100">
+                            @for (segment of flatSegments(band); track segment.start + '-' + segment.end + '-' + segment.mode + '-' + segment.license + '-' + segment.voluntaryCw) {
+                            <div class="absolute inset-y-0 flex items-center justify-center border-r border-slate-950/60 text-[9px] font-black text-white" [class.bg-red-600]="segment.mode === 'data'" [class.bg-[repeating-linear-gradient(135deg,#dc2626_0,#dc2626_4px,#7f1d1d_4px,#7f1d1d_6px)]]="segment.voluntaryCw" [class.bg-emerald-600]="segment.mode === 'phone'" [class.bg-blue-600]="segment.mode === 'mixed'" [class.bg-[repeating-linear-gradient(135deg,#fff_0,#fff_4px,#334155_4px,#334155_6px)]]="segment.mode === 'cw'" [class.text-slate-950]="segment.mode === 'cw'" [style.left.%]="position(segment.start, band)" [style.width.%]="width(segment, band)" [attr.title]="(segment.license || 'CW') + ' · ' + segment.start + '–' + segment.end + ' MHz · ' + modeLabel(segment.mode)">{{ segment.license }}</div>
+                            }
+                        </div>
+                        </div>
+                    </div>
+                }
+            </div>
+            <footer class="flex flex-wrap gap-x-3 gap-y-1 border-t border-slate-200 bg-slate-100 px-3 py-2 text-[9px] font-bold"><span class="text-red-700">■ Data</span><span class="text-emerald-700">■ Phone</span><span class="text-blue-700">■ All modes</span><span>▧ CW</span><span class="ml-auto text-slate-500">T · G · A · E</span></footer>
+        </section>
+        } @else {
 
         @for (section of bandSections; track section.title) {
         <section class="mt-6" [attr.aria-label]="section.title">
@@ -86,5 +114,6 @@
                 <a class="mt-3 inline-flex font-bold text-orange-300 underline decoration-orange-300/50 underline-offset-4 hover:text-orange-200" href="https://www.arrl.org/files/file/Regulatory/Band%20Chart/Hambands4_Color_17x11.pdf" target="_blank" rel="noopener noreferrer">Open the official ARRL chart <span class="sr-only">(opens in a new tab)</span> ↗</a>
             </div>
         </aside>
+        }
     </div>
 </main>

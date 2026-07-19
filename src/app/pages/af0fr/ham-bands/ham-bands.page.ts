@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
@@ -32,11 +32,14 @@ interface FlatBandSegment extends BandSegment {
 }
 
 @Component({
+    selector: 'ham-band-reference',
     standalone: true,
     imports: [DecimalPipe, RouterLink],
     templateUrl: './ham-bands.page.html',
 })
 export class HamBandsPage {
+    @Input() embedded = false;
+    @Input() compact = false;
     readonly bands: HamBand[] = [
         {
             name: '80 meters', label: '3.5 MHz', start: 3.5, end: 4.0,
@@ -50,7 +53,7 @@ export class HamBandsPage {
         },
         {
             name: '40 meters', label: '7 MHz', start: 7.0, end: 7.3,
-            ticks: [7.0, 7.025, 7.075, 7.1, 7.125, 7.175, 7.3],
+            ticks: [7.0, 7.025, 7.125, 7.175, 7.3],
             rows: [
                 { license: 'Extra', segments: [{ start: 7.0, end: 7.125, mode: 'data' }, { start: 7.125, end: 7.3, mode: 'phone' }] },
                 { license: 'Advanced', segments: [{ start: 7.025, end: 7.125, mode: 'data' }, { start: 7.125, end: 7.3, mode: 'phone' }] },

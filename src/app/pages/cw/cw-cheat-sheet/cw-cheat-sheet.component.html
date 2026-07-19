@@ -1,0 +1,85 @@
+@if (compact) {
+<section class="overflow-hidden rounded-2xl bg-slate-950 text-white shadow-xl" aria-label="Compact CW on-air reference">
+    <header class="flex items-center justify-between border-b border-slate-700 px-3 py-2"><h2 class="text-sm font-black uppercase tracking-wider">CW On-Air</h2><span class="font-mono text-[9px] font-bold text-orange-400">AF0FR</span></header>
+    <div class="grid gap-px bg-slate-700 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+        <section class="bg-slate-900 p-2"><h3 class="text-[9px] font-black uppercase tracking-wider text-orange-400">Call CQ</h3><code class="mt-1 block whitespace-pre-wrap text-[10px] font-bold leading-4">QRL?
+CQ CQ CQ DE AF0FR AF0FR K</code></section>
+        <section class="bg-slate-900 p-2"><h3 class="text-[9px] font-black uppercase tracking-wider text-orange-400">Answer CQ</h3><code class="mt-1 block whitespace-pre-wrap text-[10px] font-bold leading-4">&lt;CALL&gt; DE AF0FR AF0FR K</code></section>
+        <section class="bg-slate-900 p-2 sm:col-span-2 lg:col-span-1 xl:col-span-2"><h3 class="text-[9px] font-black uppercase tracking-wider text-orange-400">Exchange</h3><code class="mt-1 block whitespace-pre-wrap text-[10px] font-bold leading-4">&lt;CALL&gt; DE AF0FR &lt;GM/GA/GE&gt; TKS FER CALL BT
+UR &lt;RST&gt; &lt;RST&gt; QTH OAKVILLE MO BT
+NAME TAYLOR TAYLOR HW? &lt;CALL&gt; DE AF0FR KN</code></section>
+        <section class="bg-slate-900 p-2 sm:col-span-2 lg:col-span-1 xl:col-span-2"><h3 class="text-[9px] font-black uppercase tracking-wider text-orange-400">Extended Exchange</h3><code class="mt-1 grid gap-1 text-[10px] font-bold leading-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2"><span class="block border-l-2 border-orange-500 pl-2">RR &lt;NAME&gt; TKS FER INFO BT<br>WX SUNNY ES TEMP 82 F BT<br>RIG XIEGU G90 ES PWR 20 W BT<br>ANT 80M EFHW BT HW? BK</span><span class="block pl-2 text-slate-300">UR RIG? · UR ANT? · UR PWR?<br>HW WX? · HW LONG U HAM?<br>QSL VIA?</span></code></section>
+        <section class="bg-slate-900 p-2"><h3 class="text-[9px] font-black uppercase tracking-wider text-orange-400">Close</h3><code class="mt-1 block border-l-2 border-orange-500 pl-2 text-[10px] font-bold leading-4">&lt;CALL&gt; DE AF0FR<br>RR &lt;NAME&gt; TKS FER NICE QSO<br>HOPE CU AGN 73<br>&lt;CALL&gt; DE AF0FR SK</code></section>
+        <section class="bg-slate-900 p-2"><h3 class="text-[9px] font-black uppercase tracking-wider text-orange-400">Reply to Their Close</h3><code class="mt-1 block border-l-2 border-orange-500 pl-2 text-[10px] font-bold leading-4">TU &lt;NAME&gt; FER QSO<br>73 ES HPE CU AGN<br>&lt;CALL&gt; DE AF0FR SK . .</code></section>
+        <section class="bg-slate-900 p-2 sm:col-span-2 lg:col-span-1 xl:col-span-2"><h3 class="text-[9px] font-black uppercase tracking-wider text-orange-400">POTA Exchange</h3><div class="mt-1 grid gap-x-3 gap-y-1 text-[10px] leading-4 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+            <div><b class="text-slate-400">You hunt</b><code class="mt-1 grid gap-1 font-bold"><span class="block border-l-2 border-orange-500 pl-2">AF0FR <span class="text-slate-500">(call once)</span></span><span class="block border-l-2 border-orange-500 pl-2">R UR &lt;RST&gt; &lt;RST&gt; MO MO TU 73</span></code></div>
+            <div><b class="text-slate-400">You activate</b><code class="mt-1 grid gap-1 font-bold"><span class="block border-l-2 border-orange-500 pl-2">CQ POTA CQ POTA DE AF0FR K</span><span class="block border-l-2 border-orange-500 pl-2">&lt;CALL&gt; UR &lt;RST&gt; &lt;RST&gt; MO MO BK</span><span class="block border-l-2 border-orange-500 pl-2">TU &lt;CALL&gt; 73 QRZ?</span></code></div>
+            <div><b class="text-slate-400">You call P2P</b><code class="mt-1 grid gap-1 font-bold"><span class="block border-l-2 border-orange-500 pl-2">Pileup: P2P → then AF0FR</span><span class="block border-l-2 border-orange-500 pl-2">UR &lt;RST&gt; &lt;RST&gt; P2P US-1234 US-1234 MO MO BK</span></code></div>
+        </div></section>
+        <section class="bg-slate-900 p-2"><h3 class="text-[9px] font-black uppercase tracking-wider text-orange-400">Recovery</h3><div class="mt-1 grid grid-cols-2 gap-x-2 font-mono text-[10px] leading-4"><span>PSE QRS</span><span>AGN PSE</span><span>CALL AGN?</span><span>RST AGN?</span><span>QSL?</span><span>NIL CPY</span></div></section>
+        <section class="bg-slate-900 p-2"><h3 class="text-[9px] font-black uppercase tracking-wider text-orange-400">Conditions</h3><div class="mt-1 grid grid-cols-2 gap-x-2 text-[10px] leading-4"><span><b>QRM</b> interference</span><span><b>QRN</b> noise</span><span><b>QSB</b> fading</span><span><b>QRZ?</b> who?</span></div></section>
+        <section class="bg-slate-900 p-2"><h3 class="text-[9px] font-black uppercase tracking-wider text-orange-400">Procedure</h3><div class="mt-1 flex flex-wrap gap-x-3 font-mono text-[10px] leading-4"><span><b>K</b> anyone</span><span><b>KN</b> named</span><span><b>BT</b> break</span><span><b>BK</b> back</span><span><b>SK</b> end</span></div></section>
+    </div>
+</section>
+} @else {
+<section class="cw-cheat-sheet-workspace min-w-0 rounded-2xl bg-white p-3 shadow-xl sm:rounded-3xl sm:p-6">
+    @if (showToolbar) {
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
+            <div><div class="text-sm font-black uppercase tracking-widest text-slate-500">On-air reference</div><div class="mt-1 text-xs text-slate-400">Front-and-back reference, sized as two 5.5 × 3.5 inch print pages.</div></div>
+            <button type="button" class="ui-button-secondary" (click)="print()">Print card</button>
+        </div>
+    }
+    <div class="cw-cheat-card-stack overflow-x-auto pb-2 print:overflow-visible print:pb-0">
+        <article class="cw-cheat-card cw-cheat-front" aria-label="AF0FR CW QSO cheat sheet front">
+            <h2>AF0FR CW QSO CHEAT SHEET <span>— FRONT · PROTOCOL</span></h2>
+            <section class="cw-cheat-two-col">
+                <div class="cw-cheat-box"><h3>AF0FR Calls CQ</h3><div class="cw-cheat-transmission"><p><code>QRL?</code></p></div><p>Call CQ:</p><div class="cw-cheat-transmission"><p><code>CQ CQ CQ DE AF0FR AF0FR K</code></p></div><p>Copy <code>&lt;CALL&gt;</code>, then send:</p><div class="cw-cheat-transmission"><div class="cw-cheat-block">&lt;CALL&gt; DE AF0FR
+&lt;GM/GA/GE&gt; TKS FER CALL BT
+UR &lt;RST&gt; &lt;RST&gt; BT
+QTH OAKVILLE MO OAKVILLE MO BT
+NAME TAYLOR TAYLOR
+HW? &lt;CALL&gt; DE AF0FR KN</div></div></div>
+                <div class="cw-cheat-box"><h3>AF0FR Answers CQ</h3><p>Copy the CQ station’s call, then send:</p><div class="cw-cheat-transmission"><p><code>&lt;CALL&gt; DE AF0FR AF0FR K</code></p></div><p>After the first exchange, reply:</p><div class="cw-cheat-transmission"><div class="cw-cheat-block">&lt;CALL&gt; DE AF0FR
+RR &lt;GM/GA/GE&gt; &lt;NAME&gt; TKS FER RPRT BT
+UR &lt;RST&gt; &lt;RST&gt; BT
+QTH OAKVILLE MO OAKVILLE MO BT
+NAME TAYLOR TAYLOR
+HW? &lt;CALL&gt; DE AF0FR KN</div></div></div>
+            </section>
+            <section class="cw-cheat-flow">
+                <div class="cw-cheat-box"><h3>Continue / Extended QSO</h3><div class="cw-cheat-block">RR &lt;NAME&gt; TKS FER INFO BT
+WX SUNNY ES TEMP 82 F BT
+RIG XIEGU G90 ES PWR 20 W BT
+ANT 80M EFHW BT
+
+HW? BK</div></div>
+                <div class="cw-cheat-box"><h3>Topic Options</h3><div class="cw-cheat-topic-grid"><div>WX SUNNY</div><div>TEMP 82 F</div><div>RIG G90</div><div>PWR 20 W</div><div>ANT 80M EFHW</div><div>QTH OAKVILLE MO</div><div>LIC EXTRA</div><div>HAM FER 4 MOS</div></div></div>
+            </section>
+            <section class="cw-cheat-two-col">
+                <div class="cw-cheat-box"><h3>Close</h3><div class="cw-cheat-block">&lt;CALL&gt; DE AF0FR
+RR &lt;NAME&gt; TKS FER NICE QSO
+HOPE CU AGN 73
+&lt;CALL&gt; DE AF0FR SK</div></div>
+                <div class="cw-cheat-box"><h3>Reply to Their Close</h3><div class="cw-cheat-block">&lt;CALL&gt; DE AF0FR
+TU &lt;NAME&gt; FER QSO
+73 ES HPE CU AGN
+&lt;CALL&gt; DE AF0FR SK . .</div></div>
+            </section>
+        </article>
+        <article class="cw-cheat-card cw-cheat-back" aria-label="AF0FR CW QSO cheat sheet back">
+            <h2>AF0FR CW QSO CHEAT SHEET <span>— BACK · COPY &amp; RECOVERY</span></h2>
+            <section class="cw-cheat-back-top">
+                <div class="cw-cheat-box"><h3>Copy Checklist</h3><div class="cw-cheat-copy-grid"><div>CALL · RST · NAME · QTH</div><div>RIG · PWR · ANT · WX</div></div></div>
+                <div class="cw-cheat-box"><h3>Q Signals &amp; Conditions</h3><div class="cw-cheat-small"><b>QRM</b> interference<br><b>QRN</b> atmospheric noise<br><b>QSB</b> fading<br><b>QRH</b> frequency varies<br><b>QRZ?</b> who is calling?</div></div>
+                <div class="cw-cheat-box"><h3>Ask Them</h3><div class="cw-cheat-list"><div><b>UR RIG?</b> radio?</div><div><b>UR ANT?</b> antenna?</div><div><b>UR PWR?</b> power?</div><div><b>HW WX?</b> weather?</div><div><b>HW LONG U HAM?</b></div><div><b>QSL VIA?</b> card route?</div></div></div>
+            </section>
+            <section class="cw-cheat-back-middle"><div class="cw-cheat-box"><h3>Recovery &amp; Error Correction</h3><div class="cw-cheat-recovery-grid"><div><b>PSE QRS</b> slow down<br><b>QRS 15</b> send 15 WPM<br><b>AGN PSE</b> repeat last<br><b>NIL CPY</b> nothing copied</div><div><b>CALL AGN?</b> callsign<br><b>NAME AGN?</b> name<br><b>QTH AGN?</b> location<br><b>RST AGN?</b> report</div><div><b>MISTAKE</b> 8 dits · last good word · continue<br><b>QSL?</b> did you receive?<br><b>R / QSL</b> copied correctly<br><b>RST</b> 559 (fair) · 599 (strong)</div></div></div></section>
+            <section class="cw-cheat-back-bottom">
+                <div class="cw-cheat-box"><h3>Procedure</h3><div class="cw-cheat-list"><div><b>K</b> invitation to transmit</div><div><b>KN</b> named station only</div><div><b>BT</b> topic separator</div><div><b>BK</b> back to you</div><div><b>SK</b> end contact</div><div><b>. .</b> final courtesy</div><div><b>AR</b> optional end message</div></div></div>
+                <div class="cw-cheat-box"><h3>Common Shorthand</h3><div class="cw-cheat-list"><div><b>RR</b> received</div><div><b>FB</b> fine business</div><div><b>HR</b> here</div><div><b>HW?</b> how copy?</div><div><b>TKS FER</b> thanks for</div><div><b>CU AGN</b> see you again</div></div></div>
+                <div class="cw-cheat-box"><h3>POTA CW</h3><div class="cw-cheat-list"><div><b>Hunter:</b> send your call once</div><div><b>Activator:</b> &lt;CALL&gt; 5NN MO</div><div><b>Hunter:</b> 5NN &lt;STATE&gt; TU</div><div><b>P2P:</b> exchange park references</div><div>No formal exchange; BT/AR are rare</div></div></div>
+            </section>
+        </article>
+    </div>
+</section>
+}

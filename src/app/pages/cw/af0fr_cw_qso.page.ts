@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { CwWorkspaceView, TrainerHeader } from './trainer-header/trainer-header.component';
+import { CwCheatSheetComponent } from './cw-cheat-sheet/cw-cheat-sheet.component';
 
 type PracticeMode = 'letters' | 'numbers' | 'mixed' | 'callsigns' | 'qsoWords' | 'qso';
 type TrainingGoal = 'learn' | 'speed' | 'accuracy' | 'weaknesses' | 'qso';
@@ -217,7 +218,7 @@ interface CwProficiency {
 
 @Component({
     standalone: true,
-    imports: [CommonModule, TrainerHeader],
+    imports: [CommonModule, TrainerHeader, CwCheatSheetComponent],
     templateUrl: './af0fr_cw_qso.page.html',
 })
 export class Af0frCwQsoPage implements OnInit, OnDestroy {
@@ -753,10 +754,6 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         if (this.mobileSetupOpen) this.closeMobileSetup(false);
         if (view === 'progress') this.loadPracticeMetrics();
         this.persistUiState();
-    }
-
-    printCheatSheet(): void {
-        window.print();
     }
 
     setMetricScope(showAll: boolean): void {
