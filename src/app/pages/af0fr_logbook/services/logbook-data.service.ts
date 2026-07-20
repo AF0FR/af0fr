@@ -6,6 +6,7 @@ import {
     DxSummitApiSpot,
     PotaPark,
     PotaSpot,
+    SstCallHistoryResult,
     ZipPlaceResponse,
 } from '../models/logbook.model';
 
@@ -49,5 +50,11 @@ export class LogbookDataService {
             const url = `${directUrl}?limit=${encodeURIComponent(String(limit))}&limit_time=true&refresh=${Date.now()}`;
             return firstValueFrom(this.http.get<DxSummitApiSpot[]>(url));
         }
+    }
+
+    getSstCallHistory(callsign: string): Promise<SstCallHistoryResult> {
+        return firstValueFrom(this.http.get<SstCallHistoryResult>(
+            `${environment.apiUrl}/sst/call-history/${encodeURIComponent(callsign.trim().toUpperCase())}`
+        ));
     }
 }

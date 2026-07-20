@@ -4,6 +4,7 @@ import { Af0frLogbookPage } from '../af0fr_logbook/af0fr_logbook.page';
 import { HamBandsPage } from '../af0fr/ham-bands/ham-bands.page';
 import { CwCheatSheetComponent } from '../cw/cw-cheat-sheet/cw-cheat-sheet.component';
 import { OpsConditionsComponent } from './ops-conditions.component';
+import { OpsLogCategory } from '../af0fr_logbook/models/logbook.model';
 
 @Component({
     standalone: true,
@@ -11,4 +12,6 @@ import { OpsConditionsComponent } from './ops-conditions.component';
     imports: [RouterLink, Af0frLogbookPage, HamBandsPage, CwCheatSheetComponent, OpsConditionsComponent],
     templateUrl: './ops-dashboard.page.html',
 })
-export class OpsDashboardPage {}
+export class OpsDashboardPage {
+    activeCategory: OpsLogCategory = 'standard';
+}

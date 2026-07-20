@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, Input, OnDestroy, OnInit } from '@angular/core';
+import { Component, EventEmitter, inject, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LogbookSelector } from './logbook-selector/logbook-selector.component';
 import {
@@ -9,11 +9,13 @@ import {
     LogbookEntry,
     LogbookView,
     NamedLogbook,
+    OpsLogCategory,
     PotaSkipCounts,
     PotaPark,
     PotaSpot,
     PotaSpotRow,
     SstEntryRow,
+    SstCallHistoryResult,
     SstMultiplierMark,
 } from './models/logbook.model';
 import { OperatorProfile } from './operator-profile/operator-profile.component';
@@ -38,12 +40,16 @@ import { LogbookDataService } from './services/logbook-data.service';
 export class Af0frLogbookPage implements OnInit, OnDestroy {
     @Input() embedded = false;
     @Input() cockpit = false;
+    @Output() categoryChange = new EventEmitter<OpsLogCategory>();
     private cockpitTimer?: ReturnType<typeof setInterval>;
+    private sstLookupTimer?: ReturnType<typeof setTimeout>;
     readonly cockpitStateKey = 'af0fr-ops-cockpit';
     utcNow = new Date();
     sessionStartedAt = new Date();
     activationActive = false;
     myParkReference = '';
+    fieldDayClass = '1D';
+    fieldDaySection = 'MO';
     cockpitMessage = '';
     lastRemovedEntry: LogbookEntry | null = null;
     private readonly dataService = inject(LogbookDataService);
@@ -61,6 +67,12 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
 
     readonly bands = ['160m', '80m', '60m', '40m', '30m', '20m', '17m', '15m', '12m', '10m', '6m', '2m', '70cm'];
     readonly modes = ['SSB', 'CW', 'FM', 'FT8', 'FT4', 'AM', 'RTTY', 'JS8'];
+    readonly opsCategories: Array<{ id: OpsLogCategory; label: string; description: string }> = [
+        { id: 'standard', label: 'Standard', description: 'General contacts' },
+        { id: 'sst', label: 'SST', description: 'Score and multipliers' },
+        { id: 'pota', label: 'POTA', description: 'Parks and P2P' },
+        { id: 'fieldDay', label: 'Field Day', description: 'Class and section' },
+    ];
     activeView: LogbookView = 'qsoEntry';
     operatorCall = 'AF0FR';
     operatorName = '';
@@ -94,6 +106,10 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
     dxSummitLoading = false;
     dxSummitError = '';
     dxSummitRows: DxSpotRow[] = [];
+    standardModeFilter: 'ALL' | 'CW' | 'PHONE' = 'ALL';
+    sstHistory: SstCallHistoryResult | null = null;
+    sstHistoryLoading = false;
+    sstHistoryError = '';
 
     ngOnInit(): void {
         this.restoreProfile();
@@ -101,11 +117,15 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
         this.restoreLogbooks();
         this.restoreCockpitState();
         this.cockpitTimer = setInterval(() => this.utcNow = new Date(), 1000);
-        if (this.cockpit) void this.loadPotaSpots();
+        if (this.cockpit && this.activeCategory === 'pota') void this.loadPotaSpots();
+        if (this.cockpit && this.activeCategory === 'standard') void this.loadDxSummit();
+        if (this.cockpit && this.activeCategory === 'sst') void this.loadDxSummit();
+        this.categoryChange.emit(this.activeCategory);
     }
 
     ngOnDestroy(): void {
         if (this.cockpitTimer) clearInterval(this.cockpitTimer);
+        if (this.sstLookupTimer) clearTimeout(this.sstLookupTimer);
     }
 
     get sessionMinutes(): number { return Math.max(0, Math.floor((this.utcNow.getTime() - this.sessionStartedAt.getTime()) / 60000)); }
@@ -114,10 +134,76 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
     get sessionRate(): number { return this.sessionMinutes ? Math.round(this.qsoCount * 60 / this.sessionMinutes) : this.qsoCount; }
     get bandSummary(): string { return [...new Set(this.entries.map(entry => entry.band).filter(Boolean))].join(', ') || '—'; }
     get stateSummary(): number { return new Set(this.entries.map(entry => entry.state).filter(Boolean)).size; }
+    get activeExportLabel(): string { return this.activeCategory === 'sst' || this.activeCategory === 'fieldDay' ? 'Export Cabrillo' : 'Export ADIF'; }
     get callsignHistory(): string[] { return [...new Set(this.entries.map(entry => entry.callsign))].slice(0, 100); }
     get suggestedFrequencies(): string[] {
         const suggestions: Record<string, string[]> = { '80m': ['3.560', '3.950'], '40m': ['7.030', '7.060', '7.200'], '20m': ['14.060', '14.300'], '15m': ['21.060', '21.300'], '10m': ['28.060', '28.400'] };
         return suggestions[this.form.band] ?? [];
+    }
+    get standardActivityRows(): DxSpotRow[] {
+        const digital = new Set(['FT8', 'FT4', 'RTTY', 'JS8']);
+        const seen = new Set<string>();
+        return this.dxSummitRows.filter(row => !digital.has(row.mode)).filter(row => {
+            const mode = row.mode === 'CW' ? 'CW' : 'PHONE';
+            if (this.standardModeFilter !== 'ALL' && mode !== this.standardModeFilter) return false;
+            const key = `${row.callsign}|${row.band}|${mode}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        }).slice(0, 40);
+    }
+    get sstActivityRows(): DxSpotRow[] {
+        const ranges: Array<[number, number]> = [[1.810, 1.825], [3.528, 3.545], [7.028, 7.045], [14.028, 14.045], [21.028, 21.045], [28.028, 28.045]];
+        const seen = new Set<string>();
+        return this.dxSummitRows.filter(row => row.mode === 'CW').filter(row => {
+            const frequency = Number(row.frequency);
+            if (!ranges.some(([low, high]) => frequency >= low && frequency <= high) || seen.has(row.callsign)) return false;
+            seen.add(row.callsign);
+            return true;
+        }).slice(0, 30);
+    }
+    get sstPreviousQsos(): LogbookEntry[] {
+        const call = this.form.callsign.trim().toUpperCase();
+        if (!call) return [];
+        return this.logbooks.flatMap(log => log.entries).filter(entry => entry.callsign === call).sort((a, b) => `${b.qsoDate}${b.timeOn}`.localeCompare(`${a.qsoDate}${a.timeOn}`));
+    }
+    get sstCurrentMultiplier(): SstMultiplierMark | null { return this.sstMultiplierForEntry(this.form); }
+    get sstBandDupe(): boolean { return !!this.findSstDupe(this.form, this.editingId); }
+    get sstMultiplierWorked(): boolean {
+        const mark = this.sstCurrentMultiplier;
+        return !!mark && this.buildSstRows(this.entries).some(row => row.multipliers.some(multiplier => multiplier.key === mark.key));
+    }
+
+    onCallsignInput(value: string): void {
+        this.form.callsign = value.toUpperCase();
+        if (this.sstLookupTimer) clearTimeout(this.sstLookupTimer);
+        this.sstHistory = null;
+        this.sstHistoryError = '';
+        const call = this.form.callsign.trim();
+        if (this.activeCategory !== 'sst' || call.length < 3) return;
+        this.sstLookupTimer = setTimeout(() => void this.lookupSstCall(call), 350);
+    }
+
+    async lookupSstCall(callsign = this.form.callsign): Promise<void> {
+        const requested = callsign.trim().toUpperCase();
+        if (requested.length < 3) return;
+        this.sstHistoryLoading = true;
+        this.sstHistoryError = '';
+        try {
+            const result = await this.dataService.getSstCallHistory(requested);
+            if (this.form.callsign.trim().toUpperCase() === requested) this.sstHistory = result;
+        } catch (error) {
+            console.error(error);
+            this.sstHistoryError = 'Call-history service unavailable; copy the exchange and use your local log indicators.';
+        } finally {
+            this.sstHistoryLoading = false;
+        }
+    }
+
+    applySstHistory(): void {
+        if (!this.sstHistory?.found) return;
+        if (this.sstHistory.name) this.form.name = this.sstHistory.name.toUpperCase();
+        if (this.sstHistory.spc) this.form.state = this.sstHistory.spc.toUpperCase();
     }
     get frequencyWarning(): string {
         if (!this.form.frequency) return '';
@@ -138,6 +224,27 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
         this.persistCockpitState();
     }
 
+    exportActiveLog(): void {
+        if (this.activeCategory === 'sst') this.exportSstCabrillo();
+        else if (this.activeCategory === 'fieldDay') this.exportFieldDayCabrillo();
+        else this.exportAdif();
+    }
+
+    exportFieldDayCabrillo(): void {
+        if (!this.entries.length) return;
+        const ownExchange = `${this.fieldDayClass.toUpperCase()} ${this.fieldDaySection.toUpperCase()}`;
+        const lines = [
+            'START-OF-LOG: 3.0', 'CREATED-BY: AF0FR Ops', 'CONTEST: ARRL-FIELD-DAY',
+            `CALLSIGN: ${this.operatorCall || 'NOCALL'}`, `LOCATION: ${this.fieldDaySection || 'DX'}`,
+            ...this.sortedEntries.slice().reverse().map(entry => `QSO: ${this.padCabrillo(this.cabrilloFrequency(entry), 5)} ${this.padCabrillo(entry.mode === 'SSB' ? 'PH' : entry.mode, 2)} ${entry.qsoDate} ${entry.timeOn.replace(':', '')} ${this.padCabrillo(this.operatorCall || 'NOCALL', 13)} ${this.padCabrillo(ownExchange, 10)} ${this.padCabrillo(entry.callsign, 13)} ${this.padCabrillo(`${entry.name} ${entry.state}`, 10)}`),
+            'END-OF-LOG:',
+        ];
+        const blob = new Blob([lines.join('\r\n') + '\r\n'], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url; anchor.download = `af0fr-field-day-${new Date().toISOString().slice(0, 10)}.log`; anchor.click(); URL.revokeObjectURL(url);
+    }
+
     updateCockpitSetting(key: 'myParkReference', value: string): void {
         this[key] = value.trim().toUpperCase();
         this.persistCockpitState();
@@ -152,7 +259,7 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
     }
 
     private persistCockpitState(): void {
-        localStorage.setItem(this.cockpitStateKey, JSON.stringify({ activationActive: this.activationActive, myParkReference: this.myParkReference, sessionStartedAt: this.sessionStartedAt.toISOString() }));
+        localStorage.setItem(this.cockpitStateKey, JSON.stringify({ activationActive: this.activationActive, myParkReference: this.myParkReference, fieldDayClass: this.fieldDayClass, fieldDaySection: this.fieldDaySection, sessionStartedAt: this.sessionStartedAt.toISOString() }));
     }
 
     private restoreCockpitState(): void {
@@ -160,6 +267,8 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
             const state = JSON.parse(localStorage.getItem(this.cockpitStateKey) || '{}');
             this.activationActive = !!state.activationActive;
             this.myParkReference = String(state.myParkReference || '').toUpperCase();
+            this.fieldDayClass = String(state.fieldDayClass || '1D').toUpperCase();
+            this.fieldDaySection = String(state.fieldDaySection || 'MO').toUpperCase();
             const started = new Date(state.sessionStartedAt || Date.now());
             this.sessionStartedAt = Number.isNaN(started.getTime()) ? new Date() : started;
         } catch { /* Keep defaults for malformed local state. */ }
@@ -181,6 +290,25 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
 
     get entries(): LogbookEntry[] {
         return this.activeLogbook.entries;
+    }
+
+    get activeCategory(): OpsLogCategory { return this.activeLogbook.category || 'standard'; }
+
+    selectOpsCategory(category: OpsLogCategory): void {
+        let logbook = this.logbooks.find(candidate => candidate.category === category);
+        if (!logbook) {
+            const label = this.opsCategories.find(option => option.id === category)?.label ?? category;
+            logbook = this.createLogbook(label, [], category);
+            this.logbooks = [...this.logbooks, logbook];
+            this.persistLogbooks();
+        }
+        this.currentContest = category === 'sst' ? 'SST' : 'GENERAL';
+        this.selectLogbook(logbook.id);
+        this.form = this.blankEntry(this.currentContest);
+        this.categoryChange.emit(category);
+        if (category === 'pota' && !this.potaRows.length) void this.loadPotaSpots();
+        if (category === 'standard' && !this.dxSummitRows.length) void this.loadDxSummit();
+        if (category === 'sst' && !this.dxSummitRows.length) void this.loadDxSummit();
     }
 
     get sortedEntries(): LogbookEntry[] {
@@ -236,7 +364,9 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
 
         this.activeLogId = logbookId;
         localStorage.setItem(this.activeLogKey, logbookId);
+        this.currentContest = this.activeCategory === 'sst' ? 'SST' : 'GENERAL';
         this.clearForm();
+        this.categoryChange.emit(this.activeCategory);
     }
 
     addLogbook(): void {
@@ -356,6 +486,8 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
     clearForm(): void {
         this.editingId = '';
         this.form = this.blankEntry();
+        this.sstHistory = null;
+        this.sstHistoryError = '';
     }
 
     setSstLog(enabled: boolean): void {
@@ -695,7 +827,7 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
         this.persistLogbooks();
     }
 
-    private createLogbook(name: string, entries: LogbookEntry[]): NamedLogbook {
+    private createLogbook(name: string, entries: LogbookEntry[], category: OpsLogCategory = 'standard'): NamedLogbook {
         const now = new Date().toISOString();
 
         return {
@@ -704,6 +836,7 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
             createdAt: now,
             updatedAt: now,
             entries,
+            category,
         };
     }
 
@@ -722,6 +855,7 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
             createdAt: logbook.createdAt || now,
             updatedAt: logbook.updatedAt || now,
             entries,
+            category: ['standard', 'sst', 'pota', 'fieldDay'].includes(String(logbook.category)) ? logbook.category as OpsLogCategory : 'standard',
         };
     }
 
@@ -1009,6 +1143,7 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
             band: this.bandFromFrequencyMhz(frequency),
             mode: this.modeFromComment(comment.toUpperCase()),
             country: '',
+            miles: null,
         };
     }
 
@@ -1020,6 +1155,9 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
         const comment = this.safeString(spot.info);
         const frequency = this.frequencyKhzToMhz(this.normalizeFrequency(spot.frequency));
 
+        const latitude = Number(spot.dx_latitude);
+        const longitude = Number(spot.dx_longitude);
+
         return {
             time: this.formatDxTime(this.safeString(spot.time)),
             spotter: this.normalizeCallsign(this.safeString(spot.de_call)),
@@ -1029,6 +1167,9 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
             band: this.bandFromFrequencyMhz(frequency),
             mode: this.modeFromComment(comment.toUpperCase()),
             country: this.safeString(spot.dx_country),
+            miles: Number.isFinite(latitude) && Number.isFinite(longitude)
+                ? Math.round(this.haversineMiles(38.47, -90.30, latitude, longitude))
+                : null,
         };
     }
 

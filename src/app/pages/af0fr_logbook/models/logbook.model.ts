@@ -1,5 +1,6 @@
 export type LogbookView = 'qsoEntry' | 'sessionLog' | 'spots' | 'dxSummit';
 export type ContestMode = 'GENERAL' | 'SST';
+export type OpsLogCategory = 'standard' | 'sst' | 'pota' | 'fieldDay';
 
 export interface LogbookEntry {
     id: string;
@@ -39,6 +40,7 @@ export interface NamedLogbook {
     createdAt: string;
     updatedAt: string;
     entries: LogbookEntry[];
+    category: OpsLogCategory;
 }
 
 export interface PotaSpotRow {
@@ -71,6 +73,7 @@ export interface DxSpotRow {
     band: string;
     mode: string;
     country: string;
+    miles: number | null;
 }
 
 export interface ZipPlaceResponse {
@@ -104,4 +107,15 @@ export interface DxSummitApiSpot {
     time?: string;
     info?: string | null;
     dx_country?: string | null;
+    dx_latitude?: number | string | null;
+    dx_longitude?: number | string | null;
+}
+
+export interface SstCallHistoryResult {
+    callsign: string;
+    found: boolean;
+    name?: string;
+    spc?: string;
+    notes?: string;
+    source?: string;
 }

@@ -13,12 +13,12 @@
         </header>
 
         <div class="grid items-start gap-2 xl:grid-cols-[minmax(0,2.35fr)_minmax(19rem,1fr)]">
-            <af0fr-logbook [embedded]="true" [cockpit]="true" />
+            <af0fr-logbook [embedded]="true" [cockpit]="true" (categoryChange)="activeCategory = $event" />
 
             <aside class="grid min-w-0 gap-2 md:grid-cols-2 xl:sticky xl:top-14 xl:grid-cols-1" aria-label="Operating references">
                 <ham-band-reference [embedded]="true" [compact]="true" />
                 <ops-conditions />
-                <cw-cheat-sheet [compact]="true" [showToolbar]="false" />
+                <cw-cheat-sheet [compact]="true" [showToolbar]="false" [protocol]="activeCategory" />
             </aside>
         </div>
     </div>
