@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config import ALLOWED_ORIGINS
+from app.config import ALLOWED_ORIGINS, ALLOWED_ORIGIN_REGEX
 from app.routes import azimuth, cw, net_control, system
 from app.schema import initialize_schema
 
@@ -12,6 +12,7 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[origin.strip() for origin in ALLOWED_ORIGINS],
+        allow_origin_regex=ALLOWED_ORIGIN_REGEX or None,
         allow_credentials=False,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["*"],

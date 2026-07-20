@@ -51,6 +51,7 @@ Required configuration:
 
 - `DATABASE_URL` — PostgreSQL connection URL
 - `ALLOWED_ORIGINS` — comma-separated browser origins; defaults include `af0fr.com`, `www.af0fr.com`, and local Angular development
+- `ALLOWED_ORIGIN_REGEX` — optional browser-origin pattern; defaults to the `af0fr.vercel.app` production/preview URL family
 
 ## Domain migration
 

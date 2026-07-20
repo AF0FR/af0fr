@@ -11,3 +11,10 @@ ALLOWED_ORIGINS = os.getenv(
     "ALLOWED_ORIGINS",
     "https://af0fr.com,https://www.af0fr.com,http://localhost:4200,http://localhost:4201,http://127.0.0.1:4200,http://127.0.0.1:4201",
 ).split(",")
+
+# Accept the production Vercel alias and this project's generated preview URLs.
+# Override this in Render if the Vercel project uses a different project slug.
+ALLOWED_ORIGIN_REGEX = os.getenv(
+    "ALLOWED_ORIGIN_REGEX",
+    r"https://af0fr(?:-[a-z0-9-]+)?\.vercel\.app",
+)

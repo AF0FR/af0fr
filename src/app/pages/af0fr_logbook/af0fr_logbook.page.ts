@@ -100,7 +100,6 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
     potaRows: PotaSpotRow[] = [];
     potaSkipped: PotaSkipCounts = this.blankSkipCounts();
 
-    dxSummitUrl = 'http://www.dxsummit.fi/api/v1/spots';
     dxSummitLimit = 50;
     dxSummitRaw = '';
     dxSummitLoading = false;
@@ -680,15 +679,12 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
         this.dxSummitError = '';
 
         try {
-            const response = await this.dataService.getDxSummitSpots(
-                this.dxSummitUrl,
-                this.dxSummitLimit
-            );
+            const response = await this.dataService.getDxSummitSpots(this.dxSummitLimit);
             this.dxSummitRows = response.map((spot) => this.mapDxSummitSpot(spot)).filter((row): row is DxSpotRow => !!row);
             this.dxSummitRaw = JSON.stringify(response, null, 2);
         } catch (error) {
             console.error(error);
-            this.dxSummitError = 'Could not fetch DX Summit from this browser. Paste copied spot text or DX Summit JSON below and parse it here.';
+            this.dxSummitError = 'Could not fetch DX Summit through the AF0FR backend. Check the Render service and its allowed Vercel origin.';
         } finally {
             this.dxSummitLoading = false;
         }

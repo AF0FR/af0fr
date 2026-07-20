@@ -39,17 +39,10 @@ export class LogbookDataService {
         );
     }
 
-    async getDxSummitSpots(directUrl: string, requestedLimit: number): Promise<DxSummitApiSpot[]> {
+    getDxSummitSpots(requestedLimit: number): Promise<DxSummitApiSpot[]> {
         const limit = Math.max(1, Math.min(Number(requestedLimit) || 50, 200));
         const backendUrl = `${environment.apiUrl}/dx-summit/spots?limit=${encodeURIComponent(String(limit))}`;
-
-        try {
-            return await firstValueFrom(this.http.get<DxSummitApiSpot[]>(backendUrl));
-        } catch (backendError) {
-            console.warn('DX Summit backend proxy failed, trying direct API', backendError);
-            const url = `${directUrl}?limit=${encodeURIComponent(String(limit))}&limit_time=true&refresh=${Date.now()}`;
-            return firstValueFrom(this.http.get<DxSummitApiSpot[]>(url));
-        }
+        return firstValueFrom(this.http.get<DxSummitApiSpot[]>(backendUrl));
     }
 
     getSstCallHistory(callsign: string): Promise<SstCallHistoryResult> {

@@ -10,7 +10,7 @@ from urllib.request import Request, urlopen
 from fastapi import APIRouter
 from fastapi import HTTPException
 
-from app.config import ALLOWED_ORIGINS
+from app.config import ALLOWED_ORIGINS, ALLOWED_ORIGIN_REGEX
 
 
 router = APIRouter()
@@ -69,6 +69,7 @@ def health():
 def debug_cors():
     return {
         "allowedOrigins": [origin.strip() for origin in ALLOWED_ORIGINS],
+        "allowedOriginRegex": ALLOWED_ORIGIN_REGEX,
     }
 
 
