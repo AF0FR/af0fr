@@ -4,6 +4,7 @@ import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild } fro
 import { environment } from '../../../environments/environment';
 import { CwWorkspaceView, TrainerHeader } from './trainer-header/trainer-header.component';
 import { CwCheatSheetComponent } from './cw-cheat-sheet/cw-cheat-sheet.component';
+import { standardCq, standardExchange } from './cw-protocol';
 
 type PracticeMode = 'letters' | 'numbers' | 'mixed' | 'callsigns' | 'qsoWords' | 'qso';
 type TrainingGoal = 'learn' | 'speed' | 'accuracy' | 'weaknesses' | 'qso';
@@ -1453,20 +1454,18 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         const power = this.pickItem(['5W', '20W', '50W', '100W']);
         const weather = this.pickItem(['SUNNY', 'RAIN', 'CLOUDY', 'WINDY', 'CLEAR']);
         const temperature = this.pickItem(['45F', '55F', '68F', '75F', '82F']);
-        const greeting = this.pickItem(['GM', 'GA', 'GE']);
-
         const stages: Record<Exclude<QsoStage, 'mixed' | 'complete'>, GeneratedExercise[]> = {
             frequency: [{ text: 'QRL? QRL?', context: 'Before calling CQ: is this frequency in use?' }],
-            cq: [{ text: `CQ CQ DE ${otherCall} ${otherCall} K`, context: `${otherCall} is calling CQ using the LICW 2 × 2 format` }],
+            cq: [{ text: standardCq(otherCall), context: `${otherCall} is calling CQ with the 2 × 2 × 2 pattern` }],
             answer: [
                 { text: `${p.call} DE ${otherCall} ${otherCall} K`, context: `${otherCall} is answering your CQ` },
                 { text: `${otherCall} DE ${p.call} ${p.call} K`, context: 'Practice the response used when answering a CQ' },
             ],
-            p1: [{ text: `${p.call} DE ${otherCall} ${greeting} ES TNX FER RPRT UR RST ${rst} ${rst} QTH ${qth} ${qth} NAME ${name} ${name} OK HW? AR ${p.call} DE ${otherCall} K`, context: `Protocol 1: copy ${otherCall}’s RST, QTH, and name` }],
+            p1: [{ text: standardExchange(p.call, otherCall, rst, qth, name), context: `Protocol 1: copy ${otherCall}’s RST, QTH, and name` }],
             p2: [{ text: `${p.call} DE ${otherCall} OK ${p.name} FB ES TNX FER INFO RIG ${rig} ES PWR ${power} ANT ${antenna} WX ${weather} ES TEMP ${temperature} OK ${p.name} HW? AR ${p.call} DE ${otherCall} K`, context: `Protocol 2: copy ${otherCall}’s station and weather` }],
             p3: [{ text: `${p.call} DE ${otherCall} OK ${p.name} SOLID CPY AGE 55 YRS BEEN HAM FER 25 YRS MY KEY J38 OK ${p.name} HW? AR ${p.call} DE ${otherCall} K`, context: `Protocol 3: copy ${otherCall}’s personal information` }],
             recovery: [
-                { text: `QRS PSE QRS PSE ${otherCall} DE ${p.call} KN`, context: 'Request: please send more slowly' },
+                { text: `QRS 13 PSE ${otherCall} DE ${p.call} KN`, context: 'Request 13 WPM' },
                 { text: `SRI NAME AGN? NAME AGN? ${otherCall} DE ${p.call} KN`, context: 'Request a fill for a missed name' },
                 { text: `SRI CALL? CALL? DE ${p.call} K`, context: 'Request a missed callsign' },
                 { text: `BK RIG HR IS ${rig} ${rig} BK`, context: 'Quick BK exchange; BK is sent as two letters' },
@@ -1481,10 +1480,10 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
             return {
                 context: `Complete practice QSO between ${p.call} and ${otherCall}; BT separates the turns`,
                 text: [
-                    `CQ CQ DE ${otherCall} ${otherCall} K`,
+                    standardCq(otherCall),
                     `${otherCall} DE ${p.call} ${p.call} K`,
                     stages.p1[0].text,
-                    `${otherCall} DE ${p.call} ${greeting} ES TNX FER RPRT UR RST 579 579 QTH ${p.qth} ${p.qth} NAME ${p.name} ${p.name} OK HW? AR ${otherCall} DE ${p.call} K`,
+                    standardExchange(otherCall, p.call, '579', p.qth, p.name),
                     stages.p2[0].text,
                     `${otherCall} DE ${p.call} RIG ${p.rig} ES PWR ${p.power} ANT ${p.antenna} OK HW? AR ${otherCall} DE ${p.call} K`,
                     stages.closing[0].text,

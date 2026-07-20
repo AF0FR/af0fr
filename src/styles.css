@@ -56,7 +56,9 @@
 .cw-cheat-quick div { white-space: nowrap; }
 .cw-cheat-quick b { font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; }
 .cw-cheat-back { grid-template-rows: auto minmax(0, 1.05in) minmax(0, 0.74in) minmax(0, 1.1in); }
-.cw-cheat-copy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .045in .035in; padding: .035in .015in 0; font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; font-size: 6.25pt; font-weight: 700; line-height: 1.1; white-space: nowrap; }
+.cw-cheat-copy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .04in .07in; padding: .02in .015in 0; font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; font-size: 5.8pt; font-weight: 700; line-height: 1; }
+.cw-cheat-copy-grid div { display: grid; grid-template-columns: .28in minmax(0, 1fr); align-items: end; gap: .025in; white-space: nowrap; }
+.cw-cheat-copy-grid span { min-width: 0; border-bottom: 1px solid #777; }
 .cw-cheat-back-top { display: grid; grid-template-columns: repeat(3, 1fr); gap: .05in; min-height: 0; }
 .cw-cheat-back-middle { display: grid; min-height: 0; }
 .cw-cheat-back-bottom { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .05in; min-height: 0; }
