@@ -17,7 +17,7 @@ export class CwCheatSheetComponent {
     readonly standardCq = standardCq('AF0FR');
     readonly standardExchange = standardExchange('<CALL>', 'AF0FR', '<RST>', 'OAKVILLE MO', 'TAYLOR');
     readonly printableCq = standardCq('<URCALL>');
-    readonly printableExchange = standardExchange('<HISCALL>', '<URCALL>', '<RST>', '<CITY> <STATE>', '<NAME>');
+    readonly printableExchange = standardExchange('<HISCALL>', '<URCALL>', '<RST>', '<CITY> <STATE>', '<NAME> <NAME>');
 
     print(): void {
         window.print();
