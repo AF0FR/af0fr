@@ -519,10 +519,9 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
         if (!this.entries.length) return;
 
         const header = [
-            'AF0FR Logbook export',
-            '<ADIF_VER:5>3.1.4',
-            '<PROGRAMID:14>AF0FR Logbook',
-            '<PROGRAMVERSION:3>1.0',
+            this.adifField('ADIF_VER', '3.1.4'),
+            this.adifField('PROGRAMID', 'AF0FR Logbook'),
+            this.adifField('PROGRAMVERSION', '1.0'),
             '<EOH>',
             '',
         ].join('\r\n');
@@ -928,8 +927,9 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
             ['QTH', entry.qth],
             ['STATE', entry.state],
             ['COUNTRY', entry.country],
-            ['OPERATOR', this.operatorName],
-            ['MY_CALL', this.operatorCall],
+            ['STATION_CALLSIGN', this.operatorCall],
+            ['OPERATOR', this.operatorCall],
+            ['MY_NAME', this.operatorName],
             ['MY_GRIDSQUARE', this.stationGrid],
             ['MY_CITY', this.stationCity],
             ['MY_STATE', this.stationState],
