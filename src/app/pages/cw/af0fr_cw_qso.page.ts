@@ -9,7 +9,7 @@ import { standardCq, standardExchange } from './cw-protocol';
 type PracticeMode = 'letters' | 'numbers' | 'mixed' | 'callsigns' | 'qsoWords' | 'qso';
 type TrainingGoal = 'learn' | 'speed' | 'accuracy' | 'weaknesses' | 'qso';
 type ExerciseFormat = 'groups' | 'continuous' | 'instant' | 'guidedQso' | 'simulatedQso';
-type SessionPreset = 'warmup' | 'weaknesses' | 'callsigns' | 'firstQso' | 'onAir';
+type SessionPreset = 'warmup' | 'weaknesses' | 'callsigns' | 'charactersNumbers' | 'koch' | 'onAir';
 type WorkspaceView = CwWorkspaceView;
 type ToastTone = 'success' | 'info' | 'error';
 type SettingsSection = 'advanced' | 'content' | 'speed' | 'audio' | 'timing' | 'scoring';
@@ -86,6 +86,9 @@ interface CwUiState {
     letterDrill: LetterDrill;
     numberDrill: NumberDrill;
     mixedDrill: MixedDrill;
+    mixedLetterPercent: number;
+    kochLevel: number;
+    customCharacters: string;
     qsoStage: QsoStage;
     wordCategory: WordCategory;
     settingsSections: SettingsSectionState;
@@ -330,10 +333,11 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     ];
 
     readonly sessionPresets: { value: SessionPreset; label: string; description: string }[] = [
+        { value: 'charactersNumbers', label: 'Characters + Numbers', description: 'A–Z and 0–9 only' },
         { value: 'warmup', label: 'Daily warm-up', description: 'Mixed copy at a comfortable pace' },
         { value: 'weaknesses', label: 'Weak-character repair', description: 'Target recent misses and confusions' },
         { value: 'callsigns', label: 'Callsign sprint', description: 'Fast callsign recognition' },
-        { value: 'firstQso', label: 'First QSO', description: 'Guided basic exchange' },
+        { value: 'koch', label: 'Koch progression', description: 'Start with two characters and add one each exercise' },
         { value: 'onAir', label: 'On-air simulation', description: 'Full exchange with noise and QSB' },
     ];
 
@@ -947,13 +951,22 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
             this.farnsworthWpm = 15;
             this.groupCount = 10;
             this.applyExerciseFormat('groups');
-        } else if (preset === 'firstQso') {
-            this.trainingGoal = 'qso';
-            this.mode = 'qso';
-            this.qsoStage = 'p1';
-            this.wpm = 15;
-            this.farnsworthWpm = 8;
-            this.applyExerciseFormat('guidedQso');
+        } else if (preset === 'charactersNumbers') {
+            this.trainingGoal = 'accuracy';
+            this.mode = 'mixed';
+            this.mixedDrill = 'custom';
+            this.customCharacters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            this.groupSize = 5;
+            this.groupCount = 5;
+            this.applyExerciseFormat('groups');
+        } else if (preset === 'koch') {
+            this.trainingGoal = 'learn';
+            this.mode = 'letters';
+            this.letterDrill = 'koch';
+            this.kochLevel = 2;
+            this.groupSize = 5;
+            this.groupCount = 5;
+            this.applyExerciseFormat('groups');
         } else {
             this.trainingGoal = 'qso';
             this.mode = 'qso';
@@ -1081,6 +1094,14 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         this.prepareTimeline();
         window.setTimeout(() => this.copyInput?.nativeElement.focus(), 0);
         if (playImmediately) this.play();
+    }
+
+    nextExercise(): void {
+        if (this.activePreset === 'koch' && this.mode === 'letters' && this.letterDrill === 'koch') {
+            this.kochLevel = Math.min(this.kochSequence.length, Math.max(2, this.kochLevel + 1));
+            this.persistUiState();
+        }
+        this.newExercise();
     }
 
     play(): void {
@@ -2148,6 +2169,9 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         if (ui.letterDrill) this.letterDrill = ui.letterDrill;
         if (ui.numberDrill) this.numberDrill = ui.numberDrill;
         if (ui.mixedDrill) this.mixedDrill = ui.mixedDrill;
+        if (ui.mixedLetterPercent !== undefined) this.mixedLetterPercent = Math.min(100, Math.max(0, ui.mixedLetterPercent));
+        if (ui.kochLevel !== undefined) this.kochLevel = Math.min(this.kochSequence.length, Math.max(2, ui.kochLevel));
+        if (ui.customCharacters) this.customCharacters = ui.customCharacters;
         if (ui.qsoStage) this.qsoStage = ui.qsoStage;
         if (ui.wordCategory) this.wordCategory = ui.wordCategory;
         if (ui.settingsSections) this.settingsSections = { ...this.settingsSections, ...ui.settingsSections };
@@ -2226,6 +2250,9 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
             letterDrill: this.letterDrill,
             numberDrill: this.numberDrill,
             mixedDrill: this.mixedDrill,
+            mixedLetterPercent: this.mixedLetterPercent,
+            kochLevel: this.kochLevel,
+            customCharacters: this.customCharacters,
             qsoStage: this.qsoStage,
             wordCategory: this.wordCategory,
             settingsSections: this.settingsSections,

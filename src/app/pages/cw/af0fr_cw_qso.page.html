@@ -22,7 +22,7 @@
             <div>
                 <div class="text-xs font-black uppercase tracking-wider text-slate-500">Quick sessions</div>
                 <div class="mt-2 flex gap-2 overflow-x-auto pb-1 lg:grid lg:grid-cols-2 lg:overflow-visible" style="scrollbar-width: none" aria-label="Session presets">
-                    <button *ngFor="let preset of sessionPresets" type="button" class="min-w-max rounded-xl border px-3 py-2 text-left transition motion-reduce:transition-none hover:border-orange-300 hover:bg-orange-50 lg:min-w-0" [class.lg:col-span-2]="preset.value === 'onAir'" [class.border-orange-500]="activePreset === preset.value" [class.bg-orange-50]="activePreset === preset.value" [class.border-slate-200]="activePreset !== preset.value" [class.bg-slate-50]="activePreset !== preset.value" [attr.aria-pressed]="activePreset === preset.value" [attr.title]="preset.description" (click)="applySessionPreset(preset.value)">
+                    <button *ngFor="let preset of sessionPresets" type="button" class="min-w-max rounded-xl border px-3 py-2 text-left transition motion-reduce:transition-none hover:border-orange-300 hover:bg-orange-50 lg:min-w-0" [class.border-orange-500]="activePreset === preset.value" [class.bg-orange-50]="activePreset === preset.value" [class.border-slate-200]="activePreset !== preset.value" [class.bg-slate-50]="activePreset !== preset.value" [attr.aria-pressed]="activePreset === preset.value" [attr.title]="preset.description" (click)="applySessionPreset(preset.value)">
                         <span class="block text-xs font-black">{{ preset.label }}</span>
                         <span class="mt-0.5 hidden text-[10px] text-slate-500 sm:block lg:hidden">{{ preset.description }}</span>
                     </button>
@@ -276,7 +276,7 @@
                     <div *ngIf="hasChecked && results[0]" class="rounded-2xl border border-orange-400/30 bg-orange-400/10 p-4">
                         <div class="flex flex-wrap items-center justify-between gap-4">
                             <div><div class="text-[10px] font-black uppercase tracking-widest text-orange-300">Exercise result</div><div class="mt-1 text-3xl font-black">{{ results[0].accuracy }}% <span class="text-base font-bold text-slate-400">· {{ results[0].effectiveCopyWpm }} effective WPM</span></div></div>
-                            <div class="flex gap-2"><button type="button" class="min-h-11 rounded-xl border border-slate-600 px-4 text-sm font-black" (click)="retryExercise()">Try again</button><button type="button" class="min-h-11 rounded-xl bg-orange-500 px-4 text-sm font-black text-white" (click)="newExercise()">Next exercise</button></div>
+                            <div class="flex gap-2"><button type="button" class="min-h-11 rounded-xl border border-slate-600 px-4 text-sm font-black" (click)="retryExercise()">Try again</button><button type="button" class="min-h-11 rounded-xl bg-orange-500 px-4 text-sm font-black text-white" (click)="nextExercise()">Next exercise</button></div>
                         </div>
                         <div *ngIf="missedCharactersThisExercise.length || incorrectCharactersThisExercise.length || extraCharactersThisExercise.length" class="mt-3 grid gap-2 text-xs sm:grid-cols-3">
                             <div *ngIf="missedCharactersThisExercise.length" class="rounded-lg bg-amber-300/10 p-2"><strong class="text-amber-200">— Missed</strong><div class="mt-1 font-mono text-white">{{ missedCharactersThisExercise.join(', ') }}</div></div>
