@@ -52,10 +52,11 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
     fieldDaySection = 'MO';
     cockpitMessage = '';
     lastRemovedEntry: LogbookEntry | null = null;
+    pendingDeleteEntryId = '';
+    pendingDeleteLogbook = false;
     private readonly dataService = inject(LogbookDataService);
     readonly navigationOptions: SegmentedNavigationOption[] = [
-        { value: 'qsoEntry', label: 'QSO entry' },
-        { value: 'sessionLog', label: 'Session log' },
+        { value: 'qsoEntry', label: 'Log' },
         { value: 'spots', label: 'POTA spots' },
         { value: 'dxSummit', label: 'DX Summit' },
     ];
@@ -361,6 +362,8 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
     selectLogbook(logbookId: string): void {
         if (this.activeLogId === logbookId) return;
 
+        this.pendingDeleteLogbook = false;
+        this.pendingDeleteEntryId = '';
         this.activeLogId = logbookId;
         localStorage.setItem(this.activeLogKey, logbookId);
         this.currentContest = this.activeCategory === 'sst' ? 'SST' : 'GENERAL';
@@ -400,8 +403,12 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
         }
 
         const current = this.activeLogbook;
-        if (!window.confirm(`Delete "${current.name}" and its ${current.entries.length} QSOs?`)) return;
+        if (!this.pendingDeleteLogbook) {
+            this.pendingDeleteLogbook = true;
+            return;
+        }
 
+        this.pendingDeleteLogbook = false;
         this.logbooks = this.logbooks.filter((logbook) => logbook.id !== current.id);
         this.selectLogbook(this.logbooks[0].id);
         this.persistLogbooks();
@@ -471,9 +478,13 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
     }
 
     deleteEntry(entryId: string): void {
-        const target = this.entries.find((entry) => entry.id === entryId);
-        if (!window.confirm(`Delete QSO with ${target?.callsign ?? 'this station'}?`)) return;
+        if (this.pendingDeleteEntryId !== entryId) {
+            this.pendingDeleteEntryId = entryId;
+            return;
+        }
 
+        const target = this.entries.find((entry) => entry.id === entryId);
+        this.pendingDeleteEntryId = '';
         this.lastRemovedEntry = target ? { ...target } : null;
         this.updateActiveEntries(this.entries.filter((entry) => entry.id !== entryId));
 
@@ -868,8 +879,8 @@ export class Af0frLogbookPage implements OnInit, OnDestroy {
             band: '20m',
             frequency: '',
             mode: sst ? 'CW' : 'SSB',
-            rstSent: sst ? '599' : '59',
-            rstReceived: sst ? '599' : '59',
+            rstSent: '599',
+            rstReceived: '599',
             name: '',
             qth: '',
             state: '',

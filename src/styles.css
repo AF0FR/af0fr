@@ -127,6 +127,32 @@
     @apply rounded-panel bg-surface p-4 shadow-panel sm:p-5;
   }
 
+  .compact-qso-entry {
+    @apply p-3 sm:p-3;
+  }
+
+  .compact-qso-entry input:not([type="checkbox"]),
+  .compact-qso-entry select {
+    min-height: 2rem !important;
+    margin-top: 0.125rem !important;
+    border-radius: 0.5rem !important;
+    padding-inline: 0.5rem !important;
+  }
+
+  .compact-qso-entry textarea {
+    min-height: 2rem !important;
+    max-height: 3.5rem;
+    margin-top: 0.125rem !important;
+    border-radius: 0.5rem !important;
+    padding-block: 0.25rem !important;
+    padding-inline: 0.5rem !important;
+  }
+
+  .compact-qso-entry label > span:first-child {
+    font-size: 0.625rem;
+    line-height: 0.75rem;
+  }
+
   .ui-panel-dark {
     @apply rounded-panel bg-surface-dark p-4 text-white shadow-panel sm:p-5;
   }

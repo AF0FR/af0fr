@@ -14,6 +14,7 @@ export class LogbookSelector {
     @Input() logbooks: NamedLogbook[] = [];
     @Input() activeLogId = '';
     @Input() newLogName = '';
+    @Input() pendingDelete = false;
 
     @Output() logbookSelect = new EventEmitter<string>();
     @Output() newLogNameChange = new EventEmitter<string>();

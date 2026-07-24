@@ -1,4 +1,4 @@
-export type LogbookView = 'qsoEntry' | 'sessionLog' | 'spots' | 'dxSummit';
+export type LogbookView = 'qsoEntry' | 'spots' | 'dxSummit';
 export type ContestMode = 'GENERAL' | 'SST';
 export type OpsLogCategory = 'standard' | 'sst' | 'pota' | 'fieldDay';
 
