@@ -3,5 +3,5 @@ export function standardCq(callsign: string): string {
 }
 
 export function standardExchange(recipient: string, sender: string, rst: string, qth: string, operator: string): string {
-    return `${recipient} DE ${sender} RST ${rst} BT\nQTH ${qth} BT\nOP ${operator} ${recipient} DE ${sender} KN`;
+    return `${recipient} DE ${sender}\nGM/GA/GE TNX FER CALL BT\nUR RST ${rst} BT\nQTH ${qth} BT\nNAME ${operator} BT HW? BK`;
 }
