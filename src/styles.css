@@ -51,15 +51,12 @@
 .cw-cheat-transmission code,
 .cw-cheat-transmission .cw-cheat-block,
 .cw-cheat-block.cw-cheat-transmission { font-size: 6.9pt; line-height: 1.14; }
-.cw-cheat-topic-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .022in .045in; font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; font-size: 6.15pt; line-height: 1.12; }
 .cw-cheat-quick { display: grid; grid-template-columns: 1fr 1fr; gap: .02in .05in; font-size: 5.95pt; line-height: 1.12; }
 .cw-cheat-quick div { white-space: nowrap; }
 .cw-cheat-quick b { font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; }
-.cw-cheat-back { grid-template-rows: auto minmax(0, 1.05in) minmax(0, 0.74in) minmax(0, 1.1in); }
-.cw-cheat-copy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .04in .07in; padding: .02in .015in 0; font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; font-size: 5.8pt; font-weight: 700; line-height: 1; }
-.cw-cheat-copy-grid div { display: grid; grid-template-columns: .28in minmax(0, 1fr); align-items: end; gap: .025in; white-space: nowrap; }
-.cw-cheat-copy-grid span { min-width: 0; border-bottom: 1px solid #777; }
-.cw-cheat-back-top { display: grid; grid-template-columns: repeat(3, 1fr); gap: .05in; min-height: 0; }
+.cw-cheat-back { grid-template-rows: auto minmax(0, .64in) minmax(0, .68in) minmax(0, .70in) minmax(0, .90in); }
+.cw-cheat-back-top { display: grid; grid-template-columns: 1fr 1fr; gap: .05in; min-height: 0; }
+.cw-cheat-back-continued .cw-cheat-block { font-size: 6.3pt; line-height: 1.12; }
 .cw-cheat-back-middle { display: grid; min-height: 0; }
 .cw-cheat-back-bottom { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .05in; min-height: 0; }
 .cw-cheat-small { font-size: 6.7pt; line-height: 1.2; }
@@ -68,6 +65,8 @@
 .cw-cheat-recovery-grid b { font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; }
 .cw-cheat-list { display: grid; gap: .014in; font-size: 6.7pt; line-height: 1.1; }
 .cw-cheat-list b { font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; }
+.cw-cheat-rst { display: grid; gap: .014in; font-size: 6.5pt; line-height: 1.05; }
+.cw-cheat-rst b { font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; }
 
 @media print {
   @page { size: 5.5in 3.5in; margin: 0; }

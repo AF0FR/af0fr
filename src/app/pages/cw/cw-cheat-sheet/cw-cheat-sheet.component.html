@@ -24,49 +24,98 @@
 } @else {
 <section class="cw-cheat-sheet-workspace min-w-0 rounded-2xl bg-white p-3 shadow-xl sm:rounded-3xl sm:p-6">
     @if (showToolbar) {
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
-            <div><div class="text-sm font-black uppercase tracking-widest text-slate-500">On-air reference</div><div class="mt-1 text-xs text-slate-400">Front-and-back reference, sized as two 5.5 × 3.5 inch print pages.</div></div>
-            <button type="button" class="ui-button-secondary" (click)="print()">Print card</button>
+        <div class="mb-4 print:hidden">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div><div class="text-sm font-black uppercase tracking-widest text-slate-500">On-air reference</div><div class="mt-1 text-xs text-slate-400">Enter contact details to fill the cards live. Blank fields remain reusable placeholders.</div></div>
+                <button type="button" class="ui-button-secondary" (click)="print()">Print card</button>
+            </div>
+            <div class="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+                <label class="text-[10px] font-black uppercase tracking-wider text-slate-500">Your call<input class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 font-mono text-xs font-bold uppercase" [value]="ownCall" (input)="updateField('ownCall', $any($event.target).value)" placeholder="URCALL"></label>
+                <label class="text-[10px] font-black uppercase tracking-wider text-slate-500">Their call<input class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 font-mono text-xs font-bold uppercase" [value]="otherCall" (input)="updateField('otherCall', $any($event.target).value)" placeholder="HISCALL"></label>
+                <label class="text-[10px] font-black uppercase tracking-wider text-slate-500">Greeting<select class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-2 font-mono text-xs font-bold" [value]="greeting" (change)="updateField('greeting', $any($event.target).value)"><option>GM</option><option>GA</option><option>GE</option></select></label>
+                <label class="text-[10px] font-black uppercase tracking-wider text-slate-500">RST<input class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 font-mono text-xs font-bold uppercase" [value]="rst" (input)="updateField('rst', $any($event.target).value)" placeholder="RST"></label>
+                <label class="text-[10px] font-black uppercase tracking-wider text-slate-500">Your QTH<input class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 font-mono text-xs font-bold uppercase" [value]="qth" (input)="updateField('qth', $any($event.target).value)" placeholder="CITY STATE"></label>
+                <label class="text-[10px] font-black uppercase tracking-wider text-slate-500">Your name<input class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 font-mono text-xs font-bold uppercase" [value]="ownName" (input)="updateField('ownName', $any($event.target).value)" placeholder="URNAME"></label>
+                <label class="text-[10px] font-black uppercase tracking-wider text-slate-500">Their name<input class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 font-mono text-xs font-bold uppercase" [value]="otherName" (input)="updateField('otherName', $any($event.target).value)" placeholder="HISNAME"></label>
+            </div>
+            <details class="mt-3 rounded-xl border border-slate-200 bg-slate-50">
+                <summary class="cursor-pointer px-3 py-2 text-xs font-black text-slate-600">Ragchew details</summary>
+                <div class="grid gap-2 border-t border-slate-200 p-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+                    <label class="text-[10px] font-black uppercase text-slate-500">Rig<input class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 font-mono text-xs" [value]="rig" (input)="updateField('rig', $any($event.target).value)" placeholder="MANU MODEL"></label>
+                    <label class="text-[10px] font-black uppercase text-slate-500">Power<input class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 font-mono text-xs" [value]="power" (input)="updateField('power', $any($event.target).value)" placeholder="WATTS"></label>
+                    <label class="text-[10px] font-black uppercase text-slate-500">Antenna<input class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 font-mono text-xs" [value]="antenna" (input)="updateField('antenna', $any($event.target).value)" placeholder="ANTTYPE"></label>
+                    <label class="text-[10px] font-black uppercase text-slate-500">Height<input class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 font-mono text-xs" [value]="antennaHeight" (input)="updateField('antennaHeight', $any($event.target).value)" placeholder="FEET"></label>
+                    <label class="text-[10px] font-black uppercase text-slate-500">Weather<input class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 font-mono text-xs" [value]="weather" (input)="updateField('weather', $any($event.target).value)" placeholder="WX"></label>
+                    <label class="text-[10px] font-black uppercase text-slate-500">Temperature<input class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 font-mono text-xs" [value]="temperature" (input)="updateField('temperature', $any($event.target).value)" placeholder="TEMP"></label>
+                    <label class="text-[10px] font-black uppercase text-slate-500">Years licensed<input class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 font-mono text-xs" [value]="yearsHam" (input)="updateField('yearsHam', $any($event.target).value)" placeholder="YEARS"></label>
+                    <label class="text-[10px] font-black uppercase text-slate-500">Years on CW<input class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 font-mono text-xs" [value]="yearsCw" (input)="updateField('yearsCw', $any($event.target).value)" placeholder="YEARS"></label>
+                    <label class="text-[10px] font-black uppercase text-slate-500">On-air activity<input class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 font-mono text-xs" [value]="activity" (input)="updateField('activity', $any($event.target).value)" placeholder="POTA / RAGCHEW"></label>
+                    <label class="text-[10px] font-black uppercase text-slate-500">Age<input class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 font-mono text-xs" [value]="age" (input)="updateField('age', $any($event.target).value)" placeholder="AGE"></label>
+                    <label class="text-[10px] font-black uppercase text-slate-500">Occupation<input class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 font-mono text-xs" [value]="occupation" (input)="updateField('occupation', $any($event.target).value)" placeholder="JOB"></label>
+                    <label class="text-[10px] font-black uppercase text-slate-500">Other hobby<input class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 font-mono text-xs" [value]="hobby" (input)="updateField('hobby', $any($event.target).value)" placeholder="HOBBY"></label>
+                    <label class="text-[10px] font-black uppercase text-slate-500">QSL preference<input class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 font-mono text-xs" [value]="qslPreference" (input)="updateField('qslPreference', $any($event.target).value)" placeholder="DIRECT / LOTW"></label>
+                    <label class="text-[10px] font-black uppercase text-slate-500">Favorite band<input class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 font-mono text-xs" [value]="favoriteBand" (input)="updateField('favoriteBand', $any($event.target).value)" placeholder="40M"></label>
+                    <label class="text-[10px] font-black uppercase text-slate-500">Operating schedule<input class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 font-mono text-xs" [value]="operatingSchedule" (input)="updateField('operatingSchedule', $any($event.target).value)" placeholder="EVENINGS / 40M"></label>
+                    <label class="text-[10px] font-black uppercase text-slate-500">Recent project<input class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 font-mono text-xs" [value]="recentProject" (input)="updateField('recentProject', $any($event.target).value)" placeholder="ANTENNA / KIT / KEYER"></label>
+                    <label class="text-[10px] font-black uppercase text-slate-500">POTA state<input class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 font-mono text-xs" [value]="potaState" (input)="updateField('potaState', $any($event.target).value)" placeholder="STATE"></label>
+                    <label class="text-[10px] font-black uppercase text-slate-500">Your park<input class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 font-mono text-xs" [value]="ownPark" (input)="updateField('ownPark', $any($event.target).value)" placeholder="US-1234"></label>
+                    <label class="text-[10px] font-black uppercase text-slate-500">Their park<input class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 font-mono text-xs" [value]="otherPark" (input)="updateField('otherPark', $any($event.target).value)" placeholder="US-5678"></label>
+                </div>
+            </details>
         </div>
     }
     <div class="cw-cheat-card-stack overflow-x-auto pb-2 print:overflow-visible print:pb-0">
         <article class="cw-cheat-card cw-cheat-front" aria-label="CW QSO cheat sheet front">
             <h2>CW QSO CHEAT SHEET <span>— FRONT · PROTOCOL</span></h2>
             <section class="cw-cheat-two-col">
-                <div class="cw-cheat-box"><h3>You Call CQ</h3><div class="cw-cheat-transmission"><p><code>QRL?</code></p></div><p>Call CQ:</p><div class="cw-cheat-transmission"><div class="cw-cheat-block">{{ printableCq }}</div></div><p>Copy <code>&lt;HISCALL&gt;</code>, then send:</p><div class="cw-cheat-transmission"><div class="cw-cheat-block">{{ printableExchange }}</div></div></div>
-                <div class="cw-cheat-box"><h3>You Answer CQ</h3><p>Copy the CQ station’s call, then send:</p><div class="cw-cheat-transmission"><p><code>&lt;HISCALL&gt; DE &lt;URCALL&gt; &lt;URCALL&gt; K</code></p></div><p>After the first exchange, reply:</p><div class="cw-cheat-transmission"><div class="cw-cheat-block">{{ printableExchange }}</div></div></div>
-            </section>
-            <section class="cw-cheat-flow">
-                <div class="cw-cheat-box"><h3>Continue / Extended QSO</h3><div class="cw-cheat-block">RR &lt;NAME&gt; TKS FER INFO BT
-WX &lt;WX&gt; ES TEMP &lt;TEMP&gt; BT
-RIG &lt;MANU&gt; &lt;MODEL&gt; ES PWR &lt;WATTS&gt; W BT
-ANT &lt;ANTTYPE&gt; AT &lt;FEET&gt; FT BT
-HW? BK</div></div>
-                <div class="cw-cheat-box"><h3>Topic Options</h3><div class="cw-cheat-topic-grid"><div>WX &lt;WX&gt;</div><div>TEMP &lt;TEMP&gt;</div><div>RIG &lt;MANU&gt; &lt;MODEL&gt;</div><div>PWR &lt;WATTS&gt; W</div><div>ANT &lt;ANTTYPE&gt;</div><div>AT &lt;FEET&gt; FT</div><div>QTH &lt;CITY&gt; &lt;STATE&gt;</div><div>LIC &lt;CLASS&gt;</div></div></div>
+                <div class="cw-cheat-box"><h3>You Call CQ</h3><div class="cw-cheat-transmission"><p><code>QRL?</code></p></div><p>Call CQ:</p><div class="cw-cheat-transmission"><div class="cw-cheat-block">{{ printableCq }}</div></div><p>Copy <code>{{ valueOrSlot(otherCall, 'HISCALL') }}</code>, then send:</p><div class="cw-cheat-transmission"><div class="cw-cheat-block">{{ printableExchange }}</div></div></div>
+                <div class="cw-cheat-box"><h3>You Answer CQ</h3><p>Copy the CQ station’s call, then send:</p><div class="cw-cheat-transmission"><p><code>{{ valueOrSlot(otherCall, 'HISCALL') }} DE {{ valueOrSlot(ownCall, 'URCALL') }} {{ valueOrSlot(ownCall, 'URCALL') }} K</code></p></div><p>After the first exchange, reply:</p><div class="cw-cheat-transmission"><div class="cw-cheat-block">{{ printableExchange }}</div></div></div>
             </section>
             <section class="cw-cheat-two-col">
-                <div class="cw-cheat-box"><h3>Close</h3><div class="cw-cheat-block">&lt;HISCALL&gt; DE &lt;URCALL&gt;
-RR &lt;NAME&gt; TKS FER NICE QSO
-HOPE CU AGN 73
-&lt;HISCALL&gt; DE &lt;URCALL&gt; SK</div></div>
-                <div class="cw-cheat-box"><h3>Reply to Their Close</h3><div class="cw-cheat-block">&lt;HISCALL&gt; DE &lt;URCALL&gt;
-TU &lt;NAME&gt; FER QSO
-73 ES HPE CU AGN
-&lt;HISCALL&gt; DE &lt;URCALL&gt; SK . .</div></div>
+                <div class="cw-cheat-box"><h3>Continue · Weather</h3><div class="cw-cheat-block">RR {{ valueOrSlot(otherName, 'HISNAME') }} TKS FER INFO BT
+WX HR {{ valueOrSlot(weather, 'WX') }} BT
+TEMP {{ valueOrSlot(temperature, 'TEMP') }} BT
+HW WX UR QTH? BK</div></div>
+                <div class="cw-cheat-box"><h3>Continue · Station</h3><div class="cw-cheat-block">RIG HR {{ valueOrSlot(rig, 'MANU MODEL') }} BT
+PWR {{ valueOrSlot(power, 'WATTS') }} W BT
+ANT {{ valueOrSlot(antenna, 'ANTTYPE') }} AT {{ valueOrSlot(antennaHeight, 'FEET') }} FT BT
+HW UR RIG ES ANT? BK</div></div>
+            </section>
+            <section class="cw-cheat-two-col">
+                <div class="cw-cheat-box"><h3>Continue · On The Air</h3><div class="cw-cheat-block">BEEN HAM {{ valueOrSlot(yearsHam, 'YEARS') }} YRS BT
+CW FER {{ valueOrSlot(yearsCw, 'YEARS') }} YRS BT
+LICW NR 9696 ES SKCC NR 31263 BT
+HW LONG U HAM? BK</div></div>
+                <div class="cw-cheat-box"><h3>Continue · Band &amp; Schedule</h3><div class="cw-cheat-block">FAV BAND IS {{ valueOrSlot(favoriteBand, 'BAND') }} BT
+USUALLY QRV {{ valueOrSlot(operatingSchedule, 'TIME / BAND') }} BT
+WHAT BAND U USE MOST? BK</div></div>
             </section>
         </article>
         <article class="cw-cheat-card cw-cheat-back" aria-label="CW QSO cheat sheet back">
-            <h2>CW QSO CHEAT SHEET <span>— BACK · COPY &amp; RECOVERY</span></h2>
-            <section class="cw-cheat-back-top">
-                <div class="cw-cheat-box"><h3>Copy Checklist</h3><div class="cw-cheat-copy-grid"><div *ngFor="let field of ['CALL', 'RST', 'QTH', 'NAME', 'RIG', 'PWR', 'ANT', 'WX']"><b>{{ field }}</b><span></span></div></div></div>
-                <div class="cw-cheat-box"><h3>Q Signals &amp; Conditions</h3><div class="cw-cheat-small"><b>QRM</b> interference<br><b>QRN</b> atmospheric noise<br><b>QSB</b> fading<br><b>QRH</b> frequency varies<br><b>QRZ?</b> who is calling?</div></div>
-                <div class="cw-cheat-box"><h3>Ask Them</h3><div class="cw-cheat-list"><div><b>UR RIG?</b> radio?</div><div><b>UR ANT?</b> antenna?</div><div><b>UR PWR?</b> power?</div><div><b>HW WX?</b> weather?</div><div><b>HW LONG U HAM?</b></div><div><b>QSL VIA?</b> card route?</div></div></div>
+            <h2>CW QSO CHEAT SHEET <span>— BACK · REFERENCE &amp; RECOVERY</span></h2>
+            <section class="cw-cheat-back-continued cw-cheat-two-col">
+                <div class="cw-cheat-box"><h3>Continue · Project</h3><div class="cw-cheat-block">JUST BUILT {{ valueOrSlot(recentProject, 'PROJECT') }} BT
+BUILT ANYTHING LATELY? BK</div></div>
+                <div class="cw-cheat-box"><h3>Continue · Personal &amp; QSL</h3><div class="cw-cheat-block">AGE HR {{ valueOrSlot(age, 'AGE') }} ES OCCUPATION {{ valueOrSlot(occupation, 'JOB') }} BT
+OTHER HOBBY IS {{ valueOrSlot(hobby, 'HOBBY') }} BT
+QSL VIA {{ valueOrSlot(qslPreference, 'DIRECT / LOTW') }} ES I QSL SAME BT
+TELL ME ABT URSELF BK</div></div>
             </section>
-            <section class="cw-cheat-back-middle"><div class="cw-cheat-box"><h3>Recovery &amp; Error Correction</h3><div class="cw-cheat-recovery-grid"><div><b>QRS 13 PSE</b> send 13 WPM<br><b>QRS 15 PSE</b> send 15 WPM<br><b>AGN PSE</b> repeat last<br><b>NIL CPY</b> nothing copied</div><div><b>CALL AGN?</b> callsign<br><b>NAME AGN?</b> name<br><b>QTH AGN?</b> location<br><b>RST AGN?</b> report</div><div><b>MISTAKE</b> 8 dits · last good word · continue<br><b>QSL?</b> did you receive?<br><b>R / QSL</b> copied correctly<br><b>RST</b> 559 (fair) · 599 (strong)</div></div></div></section>
+            <section class="cw-cheat-back-top">
+                <div class="cw-cheat-box"><h3>Close</h3><div class="cw-cheat-block">{{ valueOrSlot(otherCall, 'HISCALL') }} DE {{ valueOrSlot(ownCall, 'URCALL') }}
+RR {{ valueOrSlot(otherName, 'HISNAME') }} TKS FER NICE QSO
+HOPE CU AGN 73
+{{ valueOrSlot(otherCall, 'HISCALL') }} DE {{ valueOrSlot(ownCall, 'URCALL') }} SK</div></div>
+                <div class="cw-cheat-box"><h3>Reply to Their Close</h3><div class="cw-cheat-block">{{ valueOrSlot(otherCall, 'HISCALL') }} DE {{ valueOrSlot(ownCall, 'URCALL') }}
+TU {{ valueOrSlot(otherName, 'HISNAME') }} FER QSO
+73 ES HPE CU AGN
+{{ valueOrSlot(otherCall, 'HISCALL') }} DE {{ valueOrSlot(ownCall, 'URCALL') }} SK . .</div></div>
+            </section>
+            <section class="cw-cheat-back-middle"><div class="cw-cheat-box"><h3>Recovery &amp; Error Correction</h3><div class="cw-cheat-recovery-grid"><div><b>QRS 18 PSE</b> send 18 WPM<br><b>PSE SPACE</b> increase spacing<br><b>AGN PSE</b> repeat last<br><b>NIL CPY</b> nothing copied</div><div><b>CALL AGN?</b> callsign<br><b>NAME AGN?</b> name<br><b>QTH AGN?</b> location<br><b>RST AGN?</b> report</div><div><b>8 DITS</b> mistake · last good word · continue<br><b>QSL?</b> did you receive?<br><b>R / QSL</b> copied correctly<br><b>AS PSE</b> please wait</div></div></div></section>
             <section class="cw-cheat-back-bottom">
-                <div class="cw-cheat-box"><h3>Procedure</h3><div class="cw-cheat-list"><div><b>K</b> invitation to transmit</div><div><b>KN</b> named station only</div><div><b>BT</b> topic separator</div><div><b>BK</b> back to you</div><div><b>SK</b> end contact</div><div><b>. .</b> final courtesy</div><div><b>AR</b> optional end message</div></div></div>
-                <div class="cw-cheat-box"><h3>Common Shorthand</h3><div class="cw-cheat-list"><div><b>RR</b> received</div><div><b>FB</b> fine business</div><div><b>HR</b> here</div><div><b>HW?</b> how copy?</div><div><b>TKS FER</b> thanks for</div><div><b>CU AGN</b> see you again</div></div></div>
-                <div class="cw-cheat-box"><h3>POTA CW</h3><div class="cw-cheat-list"><div><b>Hunter:</b> send &lt;URCALL&gt; once</div><div><b>Activator:</b> &lt;HISCALL&gt; 5NN &lt;STATE&gt;</div><div><b>Hunter:</b> 5NN &lt;STATE&gt; TU</div><div><b>P2P:</b> exchange park references</div><div>No formal exchange; BT/AR are rare</div></div></div>
+                <div class="cw-cheat-box"><h3>Q Signals &amp; Conditions</h3><div class="cw-cheat-list"><div><b>QRM</b> interference</div><div><b>QRN</b> atmospheric noise</div><div><b>QSB</b> fading</div><div><b>QRH</b> frequency varies</div><div><b>QRZ?</b> who is calling?</div></div></div>
+                <div class="cw-cheat-box"><h3>RST</h3><div class="cw-cheat-rst"><div><b>R · Readability</b><br>1 unreadable · 3 difficult · 5 perfect</div><div><b>S · Strength</b><br>1 faint · 5 fair · 9 very strong</div><div><b>T · Tone</b><br>1 rough · 5 filtered · 9 pure</div></div></div>
+                <div class="cw-cheat-box"><h3>POTA CW</h3><div class="cw-cheat-list"><div><b>Hunter:</b> send {{ valueOrSlot(ownCall, 'URCALL') }} once</div><div><b>Activator:</b> {{ valueOrSlot(otherCall, 'HISCALL') }} {{ valueOrSlot(rst, 'RST') }} {{ valueOrSlot(potaState, 'STATE') }}</div><div><b>Hunter:</b> {{ valueOrSlot(rst, 'RST') }} {{ valueOrSlot(potaState, 'STATE') }} TU</div><div><b>P2P:</b> {{ valueOrSlot(ownPark, 'URPARK') }} / {{ valueOrSlot(otherPark, 'HISPARK') }}</div></div></div>
             </section>
         </article>
     </div>
