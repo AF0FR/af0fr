@@ -20,6 +20,10 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/cw/af0fr_cw_qso.page').then(module => module.Af0frCwQsoPage),
     },
     {
+        path: 'gatewaycw',
+        loadComponent: () => import('./pages/gatewaycw/gateway-cw.page').then(module => module.GatewayCwPage),
+    },
+    {
         path: 'signal',
         loadComponent: () => import('./pages/azimuth-map/af0fr_azimuth_map.page').then(module => module.Af0frAzimuthMapPage),
     },

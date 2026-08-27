@@ -1,0 +1,200 @@
+<main class="min-h-screen bg-[#07110f] text-slate-100">
+  <section class="relative overflow-hidden border-b border-emerald-300/10">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,.16),transparent_38%),radial-gradient(circle_at_left,rgba(249,115,22,.09),transparent_32%)]"></div>
+    <div class="relative mx-auto max-w-7xl px-5 py-12 sm:px-6 sm:py-16">
+      <div class="mb-4 flex flex-wrap items-center gap-3 text-xs font-black uppercase tracking-[.2em] text-emerald-300">
+        <span class="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1">All operators · All locations welcome</span>
+        <span>80m → 40m → 20m</span>
+      </div>
+      <div class="grid gap-8 lg:grid-cols-[1fr_22rem] lg:items-end">
+        <div>
+          <h1 class="font-mono text-4xl font-black tracking-tight text-white sm:text-6xl">Gateway CW</h1>
+          <p class="mt-4 max-w-3xl text-lg leading-8 text-slate-300">A roaming, community-operated CW net built around real propagation. Copy at your speed, relay stations across the skip zone, and follow the net as it moves band to band.</p>
+        </div>
+        <div class="rounded-2xl border border-white/10 bg-black/25 p-5">
+          <p class="text-xs font-black uppercase tracking-widest text-slate-400">Next scheduled net</p>
+          <p class="mt-2 text-xl font-black text-white">{{ nextScheduledNet }}</p>
+          <p class="mt-2 text-sm text-slate-400">Weekly Thursdays at 8:00 PM Central</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="mx-auto max-w-7xl space-y-8 px-5 py-8 sm:px-6">
+    <div *ngIf="error" class="ui-error" role="alert">{{ error }}</div>
+
+    <section class="overflow-hidden rounded-2xl border border-orange-300/20 bg-gradient-to-br from-orange-400/[.08] to-transparent p-5 sm:p-7" aria-labelledby="gateway-schedule">
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <div><p class="text-xs font-black uppercase tracking-[.2em] text-orange-300">Multiband schedule</p><h2 id="gateway-schedule" class="mt-2 text-2xl font-black text-white">Thursdays at 8:00 PM Central</h2></div>
+        <span class="rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-xs font-bold text-slate-300">15-minute band rotations</span>
+      </div>
+      <ol class="mt-6 grid gap-3 md:grid-cols-3">
+        <li class="relative rounded-xl border border-orange-300/20 bg-black/25 p-4 md:after:absolute md:after:-right-3 md:after:top-1/2 md:after:h-px md:after:w-3 md:after:bg-orange-300/30 md:after:content-['']"><div class="flex items-center justify-between gap-3"><span class="flex h-7 w-7 items-center justify-center rounded-full bg-orange-400/15 text-xs font-black text-orange-200">1</span><time class="font-mono text-sm font-bold text-orange-200">8:00–8:15</time></div><p class="mt-4 text-2xl font-black text-white">80 m</p><p class="mt-1 text-xs text-slate-400">Opening band</p></li>
+        <li class="relative rounded-xl border border-orange-300/20 bg-black/25 p-4 md:after:absolute md:after:-right-3 md:after:top-1/2 md:after:h-px md:after:w-3 md:after:bg-orange-300/30 md:after:content-['']"><div class="flex items-center justify-between gap-3"><span class="flex h-7 w-7 items-center justify-center rounded-full bg-orange-400/15 text-xs font-black text-orange-200">2</span><time class="font-mono text-sm font-bold text-orange-200">8:15–8:30</time></div><p class="mt-4 text-2xl font-black text-white">40 m</p><p class="mt-1 text-xs text-slate-400">First QSY</p></li>
+        <li class="rounded-xl border border-orange-300/20 bg-black/25 p-4"><div class="flex items-center justify-between gap-3"><span class="flex h-7 w-7 items-center justify-center rounded-full bg-orange-400/15 text-xs font-black text-orange-200">3</span><time class="font-mono text-sm font-bold text-orange-200">8:30–8:45</time></div><p class="mt-4 text-2xl font-black text-white">20, 15, or 10 m</p><p class="mt-1 text-xs text-slate-400">Final band · see Net details for tonight’s selection</p></li>
+      </ol>
+    </section>
+
+    <section *ngIf="loading" class="rounded-2xl border border-white/10 bg-white/5 p-10 text-center text-slate-400">Listening for Gateway CW…</section>
+
+    <ng-container *ngIf="!loading">
+      <section *ngIf="session; else offAir" class="overflow-hidden rounded-2xl border" [ngClass]="liveBand ? 'border-emerald-400/25 bg-emerald-400/8' : 'border-orange-300/25 bg-orange-400/[.07]'">
+        <div class="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7">
+          <div>
+            <div class="flex items-center gap-2 text-xs font-black uppercase tracking-[.18em]" [ngClass]="liveBand ? 'text-emerald-300' : 'text-orange-300'">
+              <span class="h-2.5 w-2.5 animate-pulse rounded-full" [ngClass]="liveBand ? 'bg-emerald-400' : 'bg-orange-400'"></span> {{ liveBand ? 'Gateway CW is live' : 'Gateway CW starts soon' }}
+            </div>
+            <p class="mt-2 text-2xl font-black text-white">
+              {{ displayBand?.band }}<span *ngIf="displayBand?.frequency"> · {{ displayBand?.frequency }} MHz</span>
+            </p>
+            <p class="mt-1 text-sm text-slate-300">{{ liveBand ? 'Started' : 'Prepared' }} by {{ session.startedBy }} at {{ formatTime(session.startedAt) }}<span *ngIf="displayBand?.ncsCallsign"> · NCS {{ displayBand?.ncsCallsign }}<span *ngIf="displayBand?.ncsQth"> · {{ displayBand?.ncsQth }}</span></span></p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button class="ui-button border border-red-300/20 bg-red-950/50 text-red-100 hover:bg-red-900/60" (click)="confirmingClose = !confirmingClose">Close net</button>
+          </div>
+        </div>
+        <form *ngIf="confirmingClose" class="flex flex-col gap-3 border-t border-red-300/15 bg-red-950/25 px-5 py-4 sm:flex-row sm:items-end sm:px-7" (ngSubmit)="closeNet()">
+          <label class="w-full sm:max-w-xs"><span class="text-xs font-black uppercase tracking-widest text-red-200">Your callsign</span><input class="ui-control-dark mt-2 uppercase" name="closeCallsign" [(ngModel)]="closeCallsign" maxlength="16" required placeholder="CALLSIGN"></label>
+          <div class="flex gap-2"><button type="submit" class="ui-button-danger" [disabled]="saving || !closeCallsign.trim()">Confirm close</button><button type="button" class="ui-button border border-white/15 bg-white/10 text-white hover:bg-white/15" (click)="confirmingClose = false; closeCallsign = ''">Cancel</button></div>
+        </form>
+        <div *ngIf="session.announcement" class="border-t border-emerald-300/15 bg-black/15 px-5 py-4 sm:px-7">
+          <span class="mr-3 text-xs font-black uppercase tracking-widest text-orange-300">Announcement</span>{{ session.announcement }}
+        </div>
+      </section>
+
+      <ng-template #offAir>
+        <section class="rounded-2xl border border-white/10 bg-white/[.04] p-6 sm:p-8">
+          <div class="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <div><p class="text-xs font-black uppercase tracking-[.18em] text-slate-400">Gateway CW is off air</p><h2 class="mt-2 text-2xl font-black text-white">Anyone can start a net anytime.</h2><p class="mt-2 text-slate-400">Enter your callsign and current operating details to get the net underway.</p></div>
+            <button class="ui-button-primary" (click)="showStart = !showStart">Start a Gateway CW net</button>
+          </div>
+          <form *ngIf="showStart" class="mt-7 grid gap-4 border-t border-white/10 pt-6 md:grid-cols-2" (ngSubmit)="startNet()">
+            <label><span class="ui-label-dark">Your callsign *</span><input class="ui-control-dark mt-2 uppercase" name="startCall" [(ngModel)]="startForm.callsign" maxlength="16" required placeholder="AF0FR"></label>
+            <label><span class="ui-label-dark">Your QTH *</span><input class="ui-control-dark mt-2" name="startQth" [(ngModel)]="startForm.qth" maxlength="64" required placeholder="City, state or grid"></label>
+            <fieldset class="md:col-span-2"><legend class="ui-label-dark">Three-band plan and frequencies · 80 m starts live</legend><div class="mt-2 grid gap-3 sm:grid-cols-3"><label><span class="text-xs text-slate-400">First band · 80 m</span><input class="ui-control-dark mt-1" name="startFreq80m" [(ngModel)]="startBands[0].frequency" maxlength="24" placeholder="Frequency in use"></label><label><span class="text-xs text-slate-400">Second band · 40 m</span><input class="ui-control-dark mt-1" name="startFreq40m" [(ngModel)]="startBands[1].frequency" maxlength="24" placeholder="Frequency in use"></label><div><label><span class="text-xs text-slate-400">Third band</span><select class="ui-control-dark mt-1" name="startThirdBand" [(ngModel)]="startBands[2].band"><option *ngFor="let option of thirdBandOptions" [value]="option">{{ option }}</option></select></label><label class="mt-2 block"><span class="text-xs text-slate-400">Third-band frequency</span><input class="ui-control-dark mt-1" name="startFreqThird" [(ngModel)]="startBands[2].frequency" maxlength="24" placeholder="Frequency in use"></label></div></div></fieldset>
+            <label><span class="ui-label-dark">Question for this net</span><input class="ui-control-dark mt-2 uppercase" name="startQuestion" [(ngModel)]="startForm.question" maxlength="280" placeholder="Optional"></label>
+            <label class="md:col-span-2"><span class="ui-label-dark">Announcement</span><input class="ui-control-dark mt-2" name="startAnnouncement" [(ngModel)]="startForm.announcement" maxlength="280" placeholder="Optional note shown above the band cards"></label>
+            <label class="flex items-center gap-3 text-sm text-slate-300"><input type="checkbox" name="scheduled" [(ngModel)]="startForm.scheduled"> This is the scheduled Thursday net</label>
+            <button class="ui-button-primary md:justify-self-end" [disabled]="saving || !startForm.callsign.trim() || !startForm.qth.trim()">Publish net details</button>
+          </form>
+        </section>
+      </ng-template>
+
+      <section *ngIf="session" class="grid gap-6 xl:grid-cols-3">
+        <article *ngFor="let band of session.bands; trackBy: trackBand" class="flex min-h-[34rem] flex-col overflow-hidden rounded-2xl border bg-white/[.045]" [ngClass]="band.status === 'live' ? 'border-emerald-400/40 shadow-[0_0_35px_rgba(16,185,129,.08)]' : band.status === 'live_soon' ? 'border-orange-300/50 shadow-[0_0_35px_rgba(249,115,22,.08)]' : band.status === 'closed' ? 'border-white/8 opacity-80' : 'border-white/10'">
+          <header class="border-b border-white/10 p-5">
+            <div class="flex items-start justify-between gap-4"><div><p class="text-xs font-black uppercase tracking-[.18em]" [class.animate-pulse]="band.status === 'live_soon'" [ngClass]="band.status === 'live' ? 'text-emerald-300' : band.status === 'live_soon' ? 'text-orange-300' : 'text-slate-500'">{{ band.status === 'live_soon' ? 'LIVE SOON' : band.status }}</p><h2 class="mt-1 text-3xl font-black text-white">{{ band.band }}</h2></div><div class="text-right"><p class="font-mono text-lg font-black text-orange-300"><ng-container *ngIf="band.frequency; else frequencyOpen">{{ band.frequency }} MHz</ng-container><ng-template #frequencyOpen>Frequency open</ng-template></p><p *ngIf="band.reportedBy" class="mt-1 text-xs text-slate-500">by {{ band.reportedBy }} · {{ formatTime(band.updatedAt) }}</p></div></div>
+            <div *ngIf="band.ncsCallsign || band.ncsQth" class="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm"><span class="text-xs font-black uppercase tracking-wider text-slate-500">NCS</span><strong *ngIf="band.ncsCallsign" class="font-mono text-emerald-200">{{ band.ncsCallsign }}</strong><span *ngIf="band.ncsCallsign && band.ncsQth" class="text-slate-600">·</span><span *ngIf="band.ncsQth" class="text-slate-300">{{ band.ncsQth }}</span></div>
+            <details *ngIf="band.status !== 'closed'" class="mt-2">
+              <summary class="w-fit cursor-pointer text-xs font-semibold text-slate-500 transition hover:text-slate-300">Net details</summary>
+              <form class="mt-3 space-y-3 rounded-lg border border-white/10 bg-black/20 p-3" (ngSubmit)="updateBand(band)">
+                <div class="grid gap-2 sm:grid-cols-3"><input class="ui-control-dark" name="frequency-{{band.id}}" [(ngModel)]="bandForms[band.id].frequency" maxlength="24" placeholder="Frequency"><input class="ui-control-dark uppercase" name="ncs-{{band.id}}" [(ngModel)]="bandForms[band.id].ncsCallsign" maxlength="16" placeholder="Current NCS"><input class="ui-control-dark" name="ncsQth-{{band.id}}" [(ngModel)]="bandForms[band.id].ncsQth" maxlength="64" placeholder="NCS QTH"></div>
+                <input class="ui-control-dark uppercase" name="question-{{band.id}}" [(ngModel)]="bandForms[band.id].question" maxlength="280" placeholder="Net question">
+                <input class="ui-control-dark" name="announcement-{{band.id}}" [(ngModel)]="bandForms[band.id].announcement" maxlength="280" placeholder="Announcement">
+                <button class="ui-button-muted w-full" [disabled]="saving">Report update</button>
+              </form>
+            </details>
+            <div *ngIf="band.status === 'upcoming' || band.status === 'live_soon'" class="mt-4 grid gap-2" [class.grid-cols-2]="band.status === 'upcoming'">
+              <button *ngIf="band.status === 'upcoming'" class="ui-button border border-orange-300/30 bg-orange-950/40 text-orange-100 hover:bg-orange-900/50" (click)="markLiveSoon(band)" [disabled]="saving">Live soon</button>
+              <button class="ui-button-primary w-full" (click)="activateBand(band)" [disabled]="saving">QSY here / make live</button>
+            </div>
+          </header>
+
+          <div class="space-y-5 p-5">
+            <section>
+              <div class="flex items-center justify-between"><h3 class="ui-label-dark">Question for this net</h3><button *ngIf="band.question && !revealedQuestions.has(band.id)" class="text-xs font-bold text-emerald-300 hover:text-emerald-200" (click)="revealQuestion(band.id)">Reveal question</button></div>
+              <p *ngIf="band.question; else noQuestion" class="mt-2 rounded-xl border border-white/10 bg-black/20 p-3 font-semibold transition" [class.blur-sm]="!revealedQuestions.has(band.id)" [attr.aria-hidden]="!revealedQuestions.has(band.id)">{{ band.question }}</p>
+              <ng-template #noQuestion><p class="mt-2 text-sm text-slate-500">No question has been reported.</p></ng-template>
+            </section>
+
+            <section>
+              <div class="flex items-center justify-between"><h3 class="ui-label-dark">Check-ins</h3><span class="rounded-full bg-white/10 px-2.5 py-1 text-xs font-black">{{ band.checkins.length }}</span></div>
+              <div *ngIf="band.checkins.length; else noCheckins" class="mt-3 max-h-44 space-y-2 overflow-y-auto pr-1">
+                <div *ngFor="let checkin of band.checkins; trackBy: trackCheckin" class="rounded-lg bg-black/20 px-3 py-2 text-sm">
+                  <div class="flex flex-wrap items-center justify-between gap-2"><div><span class="font-mono font-black text-white">{{ checkin.callsign }}</span><span class="ml-2 text-slate-400">{{ checkin.preferredSpeed ? checkin.preferredSpeed + ' WPM' : 'speed not specified' }}</span></div><div class="flex flex-wrap items-center justify-end gap-2"><span class="text-xs uppercase text-slate-500">{{ checkin.checkinType }}</span><span *ngIf="checkin.qsoStatus === 'closed'" class="text-xs font-bold text-emerald-300">QSO closed</span><span *ngIf="checkin.qsoStatus !== 'closed' && checkin.checkinType === 'online'" class="text-xs font-bold text-orange-300">Pending</span><span *ngIf="checkin.qsoStatus !== 'closed' && checkin.checkinType === 'direct'" class="text-xs font-bold text-sky-300">QSO open</span></div></div>
+                  <div *ngIf="checkin.qsoStatus !== 'closed'" class="mt-2 flex justify-end border-t border-white/8 pt-2">
+                    <button class="min-h-8 rounded-md bg-emerald-600 px-2 text-xs font-black text-white hover:bg-emerald-500" [disabled]="saving" (click)="closeQso(checkin, band)">Close QSO</button>
+                  </div>
+                </div>
+              </div>
+              <ng-template #noCheckins><p class="mt-3 text-sm text-slate-500">No check-ins yet.</p></ng-template>
+              <form *ngIf="band.status === 'live'" class="mt-4 space-y-2" (ngSubmit)="addCheckin(band)">
+                <div class="grid grid-cols-[1fr_7rem] gap-2"><input class="ui-control-dark uppercase" name="checkcall-{{band.id}}" [(ngModel)]="checkinForms[band.id].callsign" maxlength="16" required placeholder="Callsign"><input class="ui-control-dark" type="number" min="1" max="100" name="speed-{{band.id}}" [(ngModel)]="checkinForms[band.id].preferredSpeed" placeholder="WPM"></div>
+                <select class="ui-control-dark" name="type-{{band.id}}" [(ngModel)]="checkinForms[band.id].checkinType"><option value="direct">Direct</option><option value="online">Online</option></select>
+                <button class="ui-button-primary w-full" [disabled]="saving">Add check-in</button>
+              </form>
+            </section>
+          </div>
+
+          <section class="mt-auto border-t border-white/10 bg-black/15 p-5">
+            <div class="flex items-center justify-between"><h3 class="ui-label-dark">Live chat</h3><span class="text-xs text-slate-500">Temporary · 50 max</span></div>
+            <div class="mt-3 h-28 space-y-2 overflow-y-auto rounded-xl bg-black/25 p-3 text-sm">
+              <p *ngIf="!band.chat.length" class="text-slate-600">Chat opens while this band is live.</p>
+              <p *ngFor="let message of band.chat; trackBy: trackChat"><span class="mr-2 text-xs text-slate-600">{{ formatTime(message.createdAt) }}</span><strong class="font-mono text-emerald-300">{{ message.callsign }}:</strong> {{ message.message }}</p>
+            </div>
+            <form *ngIf="band.status === 'live'" class="mt-3 space-y-2" (ngSubmit)="addChat(band)">
+              <div class="grid grid-cols-[7rem_1fr] gap-2"><input class="ui-control-dark uppercase" name="chatcall-{{band.id}}" [(ngModel)]="chatForms[band.id].callsign" (ngModelChange)="rememberChatCallsign($event)" maxlength="16" required placeholder="Callsign"><input class="ui-control-dark" name="chatmessage-{{band.id}}" [(ngModel)]="chatForms[band.id].message" maxlength="50" required placeholder="Message"></div>
+              <div class="flex items-center justify-between"><span class="text-xs text-slate-600">{{ chatForms[band.id].message.length }}/50</span><button class="ui-button-muted min-h-9 py-1" [disabled]="saving">Send</button></div>
+            </form>
+          </section>
+        </article>
+      </section>
+
+      <section class="rounded-2xl border border-white/10 bg-white/[.04] p-5" aria-labelledby="gateway-net-protocol">
+        <h2 id="gateway-net-protocol" class="text-lg font-black text-white">Net protocol example</h2>
+        <h3 class="mt-3 text-sm font-black uppercase tracking-widest text-slate-300">Direct check-in</h3>
+        <div class="mt-3 space-y-3 rounded-xl bg-black/35 p-4">
+          <div><p class="text-xs font-black uppercase tracking-widest text-orange-300">Net control · AF0FR sends</p><p class="mt-1 font-mono text-sm leading-6 text-emerald-200">CQ CQ GATEWAY NET DE AF0FR AF0FR QNI K</p></div>
+          <div class="border-t border-white/10 pt-3"><p class="text-xs font-black uppercase tracking-widest text-sky-300">Checking-in station · N0ABC sends</p><p class="mt-1 font-mono text-sm leading-6 text-emerald-200">N0ABC N0ABC 12 WPM</p></div>
+          <div class="border-t border-white/10 pt-3"><p class="text-xs font-black uppercase tracking-widest text-orange-300">Net control · AF0FR replies at 12 WPM and sends the net question</p><p class="mt-1 font-mono text-sm leading-6 text-emerald-200">N0ABC DE AF0FR GE 12 WPM OK<br>FAV ANT ES WHY? K</p></div>
+          <div class="border-t border-white/10 pt-3"><p class="text-xs font-black uppercase tracking-widest text-sky-300">Checking-in station · N0ABC answers</p><p class="mt-1 font-mono text-sm leading-6 text-emerald-200">AF0FR DE N0ABC DIPOLE ES SIMPLE K</p></div>
+          <div class="border-t border-white/10 pt-3"><p class="text-xs font-black uppercase tracking-widest text-orange-300">Net control · AF0FR closes the contact and calls for more check-ins</p><p class="mt-1 font-mono text-sm leading-6 text-emerald-200">TU 73<br>GATEWAY NET DE AF0FR QNI? K</p></div>
+        </div>
+        <p class="mt-2 text-sm text-slate-400">Add N0ABC as a direct check-in when heard. Its status is <strong class="text-sky-300">QSO open</strong>; select <strong class="text-white">Close QSO</strong> after the final acknowledgment.</p>
+
+        <h3 class="mt-6 text-sm font-black uppercase tracking-widest text-slate-300">Calling a pending online station</h3>
+        <div class="mt-3 space-y-3 rounded-xl bg-black/35 p-4">
+          <div><p class="text-xs font-black uppercase tracking-widest text-sky-300">K0XYZ checks in on the page</p><p class="mt-1 text-sm leading-6 text-slate-300">K0XYZ appears in the list as <strong class="text-orange-300">Pending</strong>. No radio contact has occurred yet.</p></div>
+          <div class="border-t border-white/10 pt-3"><p class="text-xs font-black uppercase tracking-widest text-orange-300">Net control · AF0FR calls the online station</p><p class="mt-1 font-mono text-sm leading-6 text-emerald-200">K0XYZ K0XYZ DE AF0FR AF0FR GATEWAY NET K</p></div>
+          <div class="border-t border-white/10 pt-3"><p class="text-xs font-black uppercase tracking-widest text-sky-300">Online station · K0XYZ answers and gives preferred speed</p><p class="mt-1 font-mono text-sm leading-6 text-emerald-200">AF0FR DE K0XYZ K0XYZ 12 WPM K</p></div>
+          <div class="border-t border-white/10 pt-3"><p class="text-xs font-black uppercase tracking-widest text-orange-300">Net control · AF0FR matches speed and asks the net question</p><p class="mt-1 font-mono text-sm leading-6 text-emerald-200">K0XYZ DE AF0FR GE 12 WPM OK<br>FAV ANT ES WHY? K</p></div>
+          <div class="border-t border-white/10 pt-3"><p class="text-xs font-black uppercase tracking-widest text-sky-300">Online station · K0XYZ answers</p><p class="mt-1 font-mono text-sm leading-6 text-emerald-200">AF0FR DE K0XYZ EFHW ES MULTIBAND K</p></div>
+          <div class="border-t border-white/10 pt-3"><p class="text-xs font-black uppercase tracking-widest text-orange-300">Net control · AF0FR closes the contact and calls for more check-ins</p><p class="mt-1 font-mono text-sm leading-6 text-emerald-200">TU 73<br>GATEWAY NET DE AF0FR QNI? K</p></div>
+        </div>
+        <p class="mt-2 text-sm text-slate-400">After the final acknowledgment, select <strong class="text-white">Close QSO</strong> for K0XYZ.</p>
+
+        <div class="mt-7 grid gap-6 lg:grid-cols-2">
+          <div>
+            <h3 class="text-sm font-black uppercase tracking-widest text-slate-300">QSY to the next band</h3>
+            <div class="mt-3 space-y-3 rounded-xl bg-black/35 p-4">
+              <div><p class="text-xs font-black uppercase tracking-widest text-orange-300">Net control · AF0FR announces the move</p><p class="mt-1 font-mono text-sm leading-6 text-emerald-200">GATEWAY NET DE AF0FR<br>QSY 40M 7055 NOW AR</p></div>
+            </div>
+            <p class="mt-2 text-sm text-slate-400">Mark 40 m <strong class="text-orange-300">LIVE SOON</strong> before the announcement. After moving, select <strong class="text-white">QSY here / make live</strong>; this closes the previous band card.</p>
+          </div>
+          <div>
+            <h3 class="text-sm font-black uppercase tracking-widest text-slate-300">Closing the net</h3>
+            <div class="mt-3 rounded-xl bg-black/35 p-4">
+              <p class="text-xs font-black uppercase tracking-widest text-orange-300">Net control · AF0FR sends</p>
+              <p class="mt-1 font-mono text-sm leading-6 text-emerald-200">GATEWAY NET DE AF0FR<br>QNF TU ALL 73 SK</p>
+            </div>
+            <p class="mt-2 text-sm text-slate-400"><span class="font-mono text-emerald-200">QNF</span> indicates the net is closed. After sending the close, select <strong class="text-white">Close net</strong> on the page.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="rounded-2xl border border-white/10 bg-white/[.04] p-5" aria-labelledby="operating-notes">
+        <div><h2 id="operating-notes" class="text-lg font-black text-white">Operating notes</h2><ul class="mt-3 grid gap-2 text-sm leading-6 text-slate-300 md:grid-cols-2"><li>All speeds are welcome; send your preferred speed when checking in.</li><li>A direct check-in starts as <strong class="text-sky-300">QSO open</strong>. Close it after the question, answer, and final acknowledgment.</li><li>An online check-in remains <strong class="text-orange-300">Pending</strong> until NCS calls the station and completes the on-air contact.</li><li>Checking in a direct station again reopens its QSO without adding a duplicate list entry.</li><li>Relays using <span class="font-mono text-emerald-200">QSP</span> and repeat check-ins on each band are encouraged; coordinate relay callbacks on the air.</li><li>Before each QSY, announce the next band and frequency. Making the next card live closes the previous band; the net does not return.</li><li>Close the on-air net with <span class="font-mono text-emerald-200">QNF</span>, then close it on the page to preserve the completed record.</li><li>Copy the net question over the air before revealing it here when possible.</li><li>Callsigns, frequency reports, and check-ins are public and not identity-verified.</li></ul></div>
+      </section>
+
+      <section class="rounded-2xl border border-white/10 bg-white/[.04] p-5 sm:p-7">
+        <div class="flex items-end justify-between"><div><p class="ui-label-dark">Preserved record</p><h2 class="mt-1 text-2xl font-black text-white">Net history</h2></div><span class="text-xs text-slate-500">Chat is never retained</span></div>
+        <div *ngIf="history.length; else noHistory" class="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <article *ngFor="let past of history; trackBy: trackSession" class="rounded-xl border border-white/10 bg-black/15 p-4"><div class="flex items-center justify-between"><strong class="text-white">{{ formatDate(past.startedAt) }}</strong><span class="text-xs uppercase text-slate-500">{{ past.scheduled ? 'scheduled' : 'spontaneous' }}</span></div><p class="mt-2 text-sm text-slate-400">{{ uniqueCount(past) }} unique stations · started by {{ past.startedBy }}</p><div class="mt-3 flex gap-2"><span *ngFor="let band of past.bands; trackBy: trackBand" class="rounded-md bg-white/8 px-2 py-1 text-xs text-slate-300">{{ band.band }} {{ band.checkins.length }}</span></div></article>
+        </div>
+        <ng-template #noHistory><p class="mt-5 text-sm text-slate-500">Completed Gateway CW nets will appear here.</p></ng-template>
+      </section>
+
+      <p class="pb-6 text-center text-xs leading-5 text-slate-600">Gateway CW is community operated. Callsigns, frequencies, check-ins, and NCS status are user-submitted and are not identity-verified. Listen before transmitting and operate within your license privileges.</p>
+    </ng-container>
+  </div>
+</main>

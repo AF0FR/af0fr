@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import ALLOWED_ORIGINS, ALLOWED_ORIGIN_REGEX
-from app.routes import azimuth, cw, net_control, system
+from app.routes import azimuth, cw, gateway_cw, net_control, system
 from app.schema import initialize_schema
 
 
@@ -26,6 +26,7 @@ def create_app() -> FastAPI:
     app.include_router(net_control.router)
     app.include_router(cw.router)
     app.include_router(azimuth.router)
+    app.include_router(gateway_cw.router)
 
     return app
 

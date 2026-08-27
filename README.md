@@ -27,6 +27,7 @@ Public routes:
 
 - `/` — AF0FR home and projects
 - `/cw` — CW copy trainer
+- `/gatewaycw` — live, community-operated Gateway CW net
 - `/logbook` — station logbook
 - `/net-control` — net-control desk
 - `/signal` — signal-report and azimuth map

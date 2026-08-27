@@ -139,7 +139,7 @@ def ensure_net_control_state_table():
             )
 
 
-def ensure_net_control_tables():
+def _ensure_net_control_sessions_table():
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -156,6 +156,102 @@ def ensure_net_control_tables():
                     created_at timestamptz not null default now(),
                     updated_at timestamptz not null default now()
                 )
+                """
+            )
+
+
+def ensure_gateway_cw_tables():
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                create table if not exists gateway_cw_sessions (
+                    id uuid primary key,
+                    status varchar(16) not null default 'live',
+                    scheduled boolean not null default false,
+                    started_by varchar(16) not null,
+                    announcement varchar(280) not null default '',
+                    started_at timestamptz not null default now(),
+                    ended_at timestamptz,
+                    updated_at timestamptz not null default now()
+                )
+                """
+            )
+            cur.execute(
+                """
+                create table if not exists gateway_cw_bands (
+                    id uuid primary key,
+                    session_id uuid not null references gateway_cw_sessions(id) on delete cascade,
+                    band varchar(12) not null,
+                    position smallint not null,
+                    status varchar(16) not null default 'upcoming',
+                    frequency varchar(24) not null default '',
+                    question varchar(280) not null default '',
+                    ncs_callsign varchar(16) not null default '',
+                    ncs_qth varchar(64) not null default '',
+                    reported_by varchar(16) not null default '',
+                    started_at timestamptz,
+                    ended_at timestamptz,
+                    updated_at timestamptz not null default now(),
+                    unique (session_id, position)
+                )
+                """
+            )
+            cur.execute(
+                "alter table gateway_cw_bands add column if not exists ncs_qth varchar(64) not null default ''"
+            )
+            cur.execute(
+                """
+                create table if not exists gateway_cw_checkins (
+                    id uuid primary key,
+                    session_id uuid not null references gateway_cw_sessions(id) on delete cascade,
+                    band_id uuid not null references gateway_cw_bands(id) on delete cascade,
+                    callsign varchar(16) not null,
+                    preferred_speed smallint,
+                    checkin_type varchar(16) not null default 'direct',
+                    relayed_by varchar(16) not null default '',
+                    entered_by varchar(16) not null,
+                    qso_status varchar(16) not null default 'pending',
+                    closed_by varchar(16) not null default '',
+                    closed_at timestamptz,
+                    created_at timestamptz not null default now(),
+                    unique (band_id, callsign)
+                )
+                """
+            )
+            cur.execute(
+                """
+                alter table gateway_cw_checkins
+                    add column if not exists qso_status varchar(16) not null default 'closed',
+                    add column if not exists closed_by varchar(16) not null default '',
+                    add column if not exists closed_at timestamptz
+                """
+            )
+            cur.execute(
+                "alter table gateway_cw_checkins alter column qso_status set default 'pending'"
+            )
+            cur.execute(
+                """
+                create table if not exists gateway_cw_chat (
+                    id uuid primary key,
+                    session_id uuid not null references gateway_cw_sessions(id) on delete cascade,
+                    band_id uuid not null references gateway_cw_bands(id) on delete cascade,
+                    callsign varchar(16) not null,
+                    message varchar(280) not null,
+                    created_at timestamptz not null default now()
+                )
+                """
+            )
+            cur.execute(
+                """
+                create index if not exists gateway_cw_sessions_started_idx
+                on gateway_cw_sessions (started_at desc)
+                """
+            )
+            cur.execute(
+                """
+                create index if not exists gateway_cw_chat_band_created_idx
+                on gateway_cw_chat (band_id, created_at)
                 """
             )
             cur.execute(
@@ -247,6 +343,11 @@ def ensure_net_control_tables():
                 )
                 """
             )
+
+def ensure_net_control_tables():
+    _ensure_net_control_sessions_table()
+    ensure_gateway_cw_tables()
+
 
 def initialize_schema():
     ensure_cw_metrics_table()
