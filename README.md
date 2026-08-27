@@ -21,7 +21,7 @@ npm start
 
 The development app runs at `http://localhost:4200` and uses the local API at `http://localhost:8000`. `npm start` uses a polling file watcher to work on Linux systems whose inotify watcher pool is already exhausted. Use `npm run start:native-watch` if native filesystem watching is available and preferred.
 
-Production currently continues to use the existing Render API so the domain migration does not require a simultaneous backend cutover. Change `src/environments/environment.prod.ts` when the AF0FR API hostname is ready.
+Production uses the AF0FR Render API at `https://af0fr.onrender.com`.
 
 Public routes:
 

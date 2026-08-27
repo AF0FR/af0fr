@@ -6,5 +6,5 @@ export const environment = {
     production: !isLocalhost,
     apiUrl: isLocalhost
         ? 'http://localhost:8000'
-        : 'https://iftaylor-api.onrender.com',
+        : 'https://af0fr.onrender.com',
 };
