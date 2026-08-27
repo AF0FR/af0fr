@@ -141,12 +141,14 @@ export class GatewayCwPage implements OnInit, OnDestroy {
         });
     }
 
-    updateBand(band: GatewayBand): void {
+    updateBand(band: GatewayBand, details?: HTMLDetailsElement): void {
         const form = this.bandForms[band.id];
         form.callsign = this.normalizeCallsign(form.callsign || band.ncsCallsign || this.session?.startedBy || this.chatCallsign);
         form.ncsCallsign = this.normalizeCallsign(form.ncsCallsign);
         if (!form.callsign) return;
-        this.mutate(this.http.patch<GatewaySession>(`${environment.apiUrl}/gateway-cw/bands/${band.id}`, form));
+        this.mutate(this.http.patch<GatewaySession>(`${environment.apiUrl}/gateway-cw/bands/${band.id}`, form), () => {
+            if (details) details.open = false;
+        });
     }
 
     activateBand(band: GatewayBand): void {
