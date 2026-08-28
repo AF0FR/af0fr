@@ -7,6 +7,7 @@ import {Toolbox} from "./toolbox/toolbox.component";
 import {Keyer} from "./keyer/keyer.component";
 import {AntennaBuildEFHW} from "./antenna-build-efhw/antenna-build-efhw.component";
 import {StraightKey} from "./straight-key/straight-key.component";
+import {LoadedVertical} from "./loaded-vertical/loaded-vertical.component";
 
 @Component({
     standalone: true,
@@ -16,6 +17,7 @@ import {StraightKey} from "./straight-key/straight-key.component";
         Toolbox,
         HamQSL,
         AntennaBuild,
+        LoadedVertical,
         EchoLink,
         Keyer,
         AntennaBuildEFHW,
