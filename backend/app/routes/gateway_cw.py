@@ -1,7 +1,8 @@
+import smtplib
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, status
 
 from app.db import get_connection
 from app.models.gateway_cw import (
@@ -9,11 +10,34 @@ from app.models.gateway_cw import (
     GatewayBandUpdate,
     GatewayChatCreate,
     GatewayCheckinCreate,
+    GatewayInterestCreate,
     GatewaySessionCreate,
 )
+from app.services.email import EmailConfigurationError, send_gateway_interest_notification
 
 
 router = APIRouter(prefix="/gateway-cw", tags=["Gateway CW"])
+
+
+@router.post("/interest", status_code=status.HTTP_201_CREATED)
+def register_gateway_interest(payload: GatewayInterestCreate):
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "insert into gateway_cw_interest (email) values (%s) on conflict (email) do nothing returning email",
+                (payload.email,),
+            )
+            if not cur.fetchone():
+                return {"message": "You're already on the Gateway CW interest list."}
+
+            try:
+                send_gateway_interest_notification(payload.email)
+            except EmailConfigurationError as exc:
+                raise HTTPException(status_code=503, detail=str(exc)) from exc
+            except (OSError, smtplib.SMTPException) as exc:
+                raise HTTPException(status_code=502, detail="The notification email could not be sent. Please try again.") from exc
+
+    return {"message": "Thanks — your interest has been recorded."}
 
 
 def _iso(value):

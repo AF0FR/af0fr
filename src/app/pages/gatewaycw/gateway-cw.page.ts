@@ -67,6 +67,10 @@ export class GatewayCwPage implements OnInit, OnDestroy {
     loading = true;
     saving = false;
     error = '';
+    interestEmail = '';
+    interestSaving = false;
+    interestMessage = '';
+    interestError = '';
     showStart = false;
     confirmingClose = false;
     closeCallsign = '';
@@ -203,6 +207,22 @@ export class GatewayCwPage implements OnInit, OnDestroy {
             this.closeCallsign = '';
             this.session = null;
             this.load(true);
+        });
+    }
+
+    registerInterest(): void {
+        if (!this.interestEmail.trim() || this.interestSaving) return;
+        this.interestSaving = true;
+        this.interestMessage = '';
+        this.interestError = '';
+        this.http.post<{ message: string }>(`${environment.apiUrl}/gateway-cw/interest`, {
+            email: this.interestEmail.trim(),
+        }).pipe(finalize(() => this.interestSaving = false)).subscribe({
+            next: ({ message }) => {
+                this.interestMessage = message;
+                this.interestEmail = '';
+            },
+            error: (response) => this.interestError = this.apiErrorMessage(response),
         });
     }
 

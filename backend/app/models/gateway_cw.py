@@ -1,3 +1,4 @@
+import re
 from typing import Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -69,3 +70,15 @@ class GatewayCheckinCreate(CallsignModel):
 
 class GatewayChatCreate(CallsignModel):
     message: str = Field(min_length=1, max_length=50)
+
+
+class GatewayInterestCreate(BaseModel):
+    email: str = Field(min_length=3, max_length=254)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        email = value.strip().lower()
+        if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email):
+            raise ValueError("Enter a valid email address")
+        return email

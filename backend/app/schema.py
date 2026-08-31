@@ -179,6 +179,14 @@ def ensure_gateway_cw_tables():
             )
             cur.execute(
                 """
+                create table if not exists gateway_cw_interest (
+                    email varchar(254) primary key,
+                    created_at timestamptz not null default now()
+                )
+                """
+            )
+            cur.execute(
+                """
                 create table if not exists gateway_cw_bands (
                     id uuid primary key,
                     session_id uuid not null references gateway_cw_sessions(id) on delete cascade,

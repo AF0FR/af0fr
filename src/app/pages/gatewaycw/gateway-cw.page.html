@@ -15,6 +15,16 @@
           <p class="text-xs font-black uppercase tracking-widest text-slate-400">Next scheduled net</p>
           <p class="mt-2 text-xl font-black text-white">{{ nextScheduledNet }}</p>
           <p class="mt-2 text-sm text-slate-400">Weekly Thursdays at 8:00 PM Central</p>
+          <form class="mt-5 border-t border-white/10 pt-5" (ngSubmit)="registerInterest()">
+            <label for="gateway-interest-email" class="text-xs font-black uppercase tracking-widest text-emerald-300">Interested in Gateway CW?</label>
+            <div class="mt-2 flex gap-2">
+              <input id="gateway-interest-email" class="min-w-0 flex-1 rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-500 focus:border-emerald-400" type="email" name="interestEmail" [(ngModel)]="interestEmail" autocomplete="email" maxlength="254" required placeholder="you@example.com" [disabled]="interestSaving">
+              <button type="submit" class="ui-button-primary whitespace-nowrap" [disabled]="interestSaving || !interestEmail.trim()">{{ interestSaving ? 'Sending…' : 'Count me in' }}</button>
+            </div>
+            <p class="mt-2 text-xs text-slate-500">Share your email to help gauge interest. No spam.</p>
+            <p *ngIf="interestMessage" class="mt-2 text-sm text-emerald-300" role="status">{{ interestMessage }}</p>
+            <p *ngIf="interestError" class="mt-2 text-sm text-red-300" role="alert">{{ interestError }}</p>
+          </form>
         </div>
       </div>
     </div>
