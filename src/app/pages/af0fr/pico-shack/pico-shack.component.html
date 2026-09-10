@@ -1,0 +1,99 @@
+<section id="pico-shack" class="px-4 pb-8 space-y-8" aria-labelledby="pico-shack-title">
+    <div class="max-w-3xl">
+        <div class="text-sm uppercase tracking-[0.28em] text-slate-800">Pico W radio projects</div>
+        <h2 id="pico-shack-title" class="mt-6 text-3xl font-semibold tracking-tight text-white sm:text-4xl">PicoShack</h2>
+        <p class="mt-4 text-base leading-8 text-slate-800">
+            PicoShack turns a Raspberry Pi Pico W into a compact radio automation toolkit.
+            It controls a connected radio’s PTT and feeds audio through a radio interface,
+            with two selectable operating features: PicoFox for an automatic fox-hunt transmitter
+            and PicoCW for manually keyed Morse audio. Its own Wi-Fi access point puts
+            configuration and operating controls on a phone or laptop, wherever the project is deployed.
+        </p>
+        <div class="mt-4 flex flex-wrap gap-3">
+            <a href="https://github.com/AF0FR/pico_shack" target="_blank" rel="noopener noreferrer"
+               class="inline-flex items-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-950 transition hover:scale-[1.02]">
+                View the code
+            </a>
+            <a href="/assets/images/pico_shack/picoshack_interface-1.pdf" target="_blank" rel="noopener noreferrer"
+               class="inline-flex items-center rounded-full border border-white/40 bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:scale-[1.02] hover:bg-slate-900">
+                Radio interface schematic (PDF)
+            </a>
+        </div>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-2">
+        <figure class="flex flex-col overflow-hidden rounded-3xl bg-slate-950 p-3">
+            <a href="/assets/images/pico_shack/pico_shack_build.jpeg" target="_blank" rel="noopener noreferrer"
+               class="flex flex-1 items-center justify-center rounded-xl focus-visible:ring-2 focus-visible:ring-orange-400" aria-label="Open full-size PicoShack build photo">
+                <img src="/assets/images/pico_shack/pico_shack_build.jpeg" alt="PicoShack hardware build"
+                     loading="lazy" class="h-64 w-full object-contain sm:h-80" />
+            </a>
+            <figcaption class="mt-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-300">PicoShack build</figcaption>
+        </figure>
+        <figure class="flex flex-col overflow-hidden rounded-3xl bg-slate-950 p-3">
+            <a href="/assets/images/pico_shack/pico_shack_perfboard.jpeg" target="_blank" rel="noopener noreferrer"
+               class="flex flex-1 items-center justify-center rounded-xl focus-visible:ring-2 focus-visible:ring-orange-400" aria-label="Open full-size PicoShack perfboard photo">
+                <img src="/assets/images/pico_shack/pico_shack_perfboard.jpeg" alt="PicoShack perfboard assembly"
+                     loading="lazy" class="h-64 w-full object-contain sm:h-80" />
+            </a>
+            <figcaption class="mt-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-300">Perfboard assembly</figcaption>
+        </figure>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-2">
+        <article class="rounded-3xl border border-orange-500/20 bg-white/5 p-6 shadow-2xl shadow-slate-950/20">
+            <div class="text-xs uppercase tracking-[0.24em] text-slate-800">PicoFox</div>
+            <h3 class="mt-3 text-xl font-semibold text-white">An automatic fox transmitter</h3>
+            <p class="mt-3 text-sm leading-7 text-slate-800">
+                PicoFox repeats a sequence of Morse fox identifiers, a two-tone warble, a frequency
+                sweep, and a station ID, with off-air pauses between stages. Set the callsign,
+                fox identifier, tones, timing, and audio gain from the browser. The operating page
+                shows the live sequence and provides Start/Stop controls and an optional browser audio monitor.
+                Stopping sends a closing station ID and leaves Wi-Fi available.
+            </p>
+        </article>
+        <article class="rounded-3xl border border-orange-500/20 bg-white/5 p-6 shadow-2xl shadow-slate-950/20">
+            <div class="text-xs uppercase tracking-[0.24em] text-slate-800">DTMF remote control</div>
+            <h3 class="mt-3 text-xl font-semibold text-white">Control the fox over the air</h3>
+            <p class="mt-3 text-sm leading-7 text-slate-800">
+                Conditioned receiver-speaker audio lets PicoShack listen for DTMF commands while
+                PTT is off. Send <code>*1</code> to start, <code>*0</code> to stop with a station ID,
+                <code>*2</code> to identify, <code>*3</code> to restart the sequence, or <code>*4</code>
+                to run one complete cycle. Commands <code>*5</code>, <code>*6</code>, and <code>*7</code>
+                play the fox identifier, warble, and sweep. A courtesy tone acknowledges accepted commands.
+                The star prefix helps prevent accidental activation; it is not authentication.
+            </p>
+        </article>
+        <article class="rounded-3xl border border-orange-500/20 bg-white/5 p-6 shadow-2xl shadow-slate-950/20">
+            <div class="text-xs uppercase tracking-[0.24em] text-slate-800">PicoCW</div>
+            <h3 class="mt-3 text-xl font-semibold text-white">MCW with a key, paddles, or browser</h3>
+            <p class="mt-3 text-sm leading-7 text-slate-800">
+                Modulated continuous wave (MCW) sends Morse as audio through the radio’s microphone
+                input. PicoCW supports a straight key and iambic Mode A or B paddles, with adjustable
+                speed, tone, paddle polarity, and PTT hang time. Use physical key inputs or the
+                web page’s straight-key and DIT/DAH controls; the left and right arrow keys also
+                operate the keyer from a keyboard.
+            </p>
+        </article>
+        <article class="rounded-3xl border border-orange-500/20 bg-white/5 p-6 shadow-2xl shadow-slate-950/20">
+            <div class="text-xs uppercase tracking-[0.24em] text-slate-800">Wi-Fi configuration</div>
+            <h3 class="mt-3 text-xl font-semibold text-white">A local web page, no internet needed</h3>
+            <p class="mt-3 text-sm leading-7 text-slate-800">
+                Join the default <strong>PicoShack</strong> Wi-Fi network using <code>picoshack1</code>,
+                then open <code>http://picoshack.local/</code> or <code>http://192.168.4.1</code>
+                in a browser. Dedicated PicoFox and PicoCW pages keep operating controls close at hand.
+                Device settings select the power-up feature and change the access-point name and password.
+                Applied settings are saved to flash and restored after power cycles; Wi-Fi changes take effect after reboot.
+            </p>
+        </article>
+    </div>
+
+    <figure class="overflow-hidden rounded-3xl bg-slate-950 p-4">
+        <a href="/assets/images/pico_shack/mcw.png" target="_blank" rel="noopener noreferrer"
+           class="block rounded-xl focus-visible:ring-2 focus-visible:ring-orange-400" aria-label="Open full-size PicoShack MCW image">
+            <img src="/assets/images/pico_shack/mcw.png" alt="PicoShack in an orange enclosure connected to a handheld radio and a 3D printed straight key"
+                 loading="lazy" class="mx-auto max-h-[32rem] w-full object-contain" />
+        </a>
+        <figcaption class="mt-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-300">PicoCW · Modulated continuous wave</figcaption>
+    </figure>
+</section>

@@ -8,6 +8,7 @@ import {Keyer} from "./keyer/keyer.component";
 import {AntennaBuildEFHW} from "./antenna-build-efhw/antenna-build-efhw.component";
 import {StraightKey} from "./straight-key/straight-key.component";
 import {LoadedVertical} from "./loaded-vertical/loaded-vertical.component";
+import {PicoShack} from "./pico-shack/pico-shack.component";
 
 @Component({
     standalone: true,
@@ -21,7 +22,8 @@ import {LoadedVertical} from "./loaded-vertical/loaded-vertical.component";
         EchoLink,
         Keyer,
         AntennaBuildEFHW,
-        StraightKey
+        StraightKey,
+        PicoShack
     ]
 })
 export class Af0frPage {}
