@@ -21,7 +21,7 @@
   margin-inline: auto;
   padding: 0.11in;
   display: grid;
-  grid-template-rows: auto minmax(0, 1.5in) minmax(0, 0.75in) minmax(0, 0.68in);
+  grid-template-rows: auto minmax(0, 1.35in) minmax(0, 1fr) minmax(0, .67in);
   gap: 0.045in;
   overflow: hidden;
   border: 1px solid #111;
@@ -54,14 +54,14 @@
 .cw-cheat-quick { display: grid; grid-template-columns: 1fr 1fr; gap: .02in .05in; font-size: 5.95pt; line-height: 1.12; }
 .cw-cheat-quick div { white-space: nowrap; }
 .cw-cheat-quick b { font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; }
-.cw-cheat-back { grid-template-rows: auto minmax(0, .64in) minmax(0, .68in) minmax(0, .70in) minmax(0, .90in); }
+.cw-cheat-back { grid-template-rows: auto minmax(0, .80in) minmax(0, .70in) minmax(0, .70in) minmax(0, 1fr); }
 .cw-cheat-back-top { display: grid; grid-template-columns: 1fr 1fr; gap: .05in; min-height: 0; }
 .cw-cheat-back-continued .cw-cheat-block { font-size: 6.3pt; line-height: 1.12; }
 .cw-cheat-back-middle { display: grid; min-height: 0; }
 .cw-cheat-back-bottom { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .05in; min-height: 0; }
 .cw-cheat-small { font-size: 6.7pt; line-height: 1.2; }
 .cw-cheat-small b { font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; }
-.cw-cheat-recovery-grid { display: grid; grid-template-columns: 1fr 1fr 1.25fr; gap: .07in; font-size: 6.65pt; line-height: 1.2; }
+.cw-cheat-recovery-grid { display: grid; grid-template-columns: 1fr 1fr 1.25fr; gap: .07in; font-size: 6.2pt; line-height: 1.15; }
 .cw-cheat-recovery-grid b { font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; }
 .cw-cheat-list { display: grid; gap: .014in; font-size: 6.7pt; line-height: 1.1; }
 .cw-cheat-list b { font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; }

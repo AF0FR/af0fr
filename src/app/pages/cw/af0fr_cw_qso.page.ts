@@ -425,7 +425,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         BEEN: { meaning: 'Used when saying how long someone has been an amateur operator', kind: 'Operating term' },
         BT: { meaning: 'Break or separator between thoughts; sent as one run-together character', kind: 'Prosign' },
         'CALL?': { meaning: 'Please repeat your callsign', kind: 'Operating term' },
-        CALL: { meaning: 'A call or callsign; in “TNX FER CALL,” thanks for answering', kind: 'Operating term' },
+        CALL: { meaning: 'A call or callsign; in “TNX FER FB CALL,” thanks for answering', kind: 'Operating term' },
         CLUB: { meaning: 'An amateur radio club or membership', kind: 'Operating term' },
         CPI: { meaning: 'Copy or understand', kind: 'Abbreviation' },
         CPY: { meaning: 'Copy or understand', kind: 'Abbreviation' },

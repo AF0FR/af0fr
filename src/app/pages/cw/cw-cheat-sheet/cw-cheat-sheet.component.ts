@@ -12,6 +12,7 @@ type CheatSheetField =
     | 'qth'
     | 'ownName'
     | 'otherName'
+    | 'key'
     | 'rig'
     | 'power'
     | 'antenna'
@@ -20,17 +21,12 @@ type CheatSheetField =
     | 'temperature'
     | 'yearsHam'
     | 'yearsCw'
-    | 'activity'
-    | 'age'
     | 'occupation'
     | 'hobby'
     | 'qslPreference'
     | 'favoriteBand'
     | 'operatingSchedule'
-    | 'recentProject'
-    | 'potaState'
-    | 'ownPark'
-    | 'otherPark';
+    | 'recentProject';
 
 @Component({
     selector: 'cw-cheat-sheet',
@@ -43,18 +39,15 @@ export class CwCheatSheetComponent implements OnInit {
     private readonly storageKey = 'cw-on-air-reference-v1';
     private readonly fields: CheatSheetField[] = [
         'notes', 'ownCall', 'otherCall', 'greeting', 'rst', 'qth', 'ownName', 'otherName',
-        'rig', 'power', 'antenna', 'antennaHeight', 'weather', 'temperature',
-        'yearsHam', 'yearsCw', 'activity', 'age', 'occupation', 'hobby',
+        'key', 'rig', 'power', 'antenna', 'antennaHeight', 'weather', 'temperature',
+        'yearsHam', 'yearsCw', 'occupation', 'hobby',
         'qslPreference',
         'favoriteBand', 'operatingSchedule', 'recentProject',
-        'potaState', 'ownPark', 'otherPark',
     ];
 
     @Input() showToolbar = true;
     @Input() compact = false;
     @Input() protocol: OpsLogCategory = 'standard';
-    readonly standardCq = standardCq('AF0FR');
-    readonly standardExchange = standardExchange('<CALL>', 'AF0FR', '<RST>', 'OAKVILLE MO', 'TAYLOR', 'GM/GA/GE');
 
     notes = '';
     ownCall = '';
@@ -64,6 +57,7 @@ export class CwCheatSheetComponent implements OnInit {
     qth = '';
     ownName = '';
     otherName = '';
+    key = '';
     rig = '';
     power = '';
     antenna = '';
@@ -72,17 +66,12 @@ export class CwCheatSheetComponent implements OnInit {
     temperature = '';
     yearsHam = '';
     yearsCw = '';
-    activity = '';
-    age = '';
     occupation = '';
     hobby = '';
     qslPreference = 'DIRECT';
     favoriteBand = '';
     operatingSchedule = '';
     recentProject = '';
-    potaState = '';
-    ownPark = '';
-    otherPark = '';
 
     constructor(@Inject(PLATFORM_ID) private readonly platformId: object) {}
 
