@@ -4,6 +4,7 @@ import { OpsLogCategory } from '../../af0fr_logbook/models/logbook.model';
 import { standardCq, standardExchange } from '../cw-protocol';
 
 type CheatSheetField =
+    | 'notes'
     | 'ownCall'
     | 'otherCall'
     | 'greeting'
@@ -41,7 +42,7 @@ type CheatSheetField =
 export class CwCheatSheetComponent implements OnInit {
     private readonly storageKey = 'cw-on-air-reference-v1';
     private readonly fields: CheatSheetField[] = [
-        'ownCall', 'otherCall', 'greeting', 'rst', 'qth', 'ownName', 'otherName',
+        'notes', 'ownCall', 'otherCall', 'greeting', 'rst', 'qth', 'ownName', 'otherName',
         'rig', 'power', 'antenna', 'antennaHeight', 'weather', 'temperature',
         'yearsHam', 'yearsCw', 'activity', 'age', 'occupation', 'hobby',
         'qslPreference',
@@ -55,6 +56,7 @@ export class CwCheatSheetComponent implements OnInit {
     readonly standardCq = standardCq('AF0FR');
     readonly standardExchange = standardExchange('<CALL>', 'AF0FR', '<RST>', 'OAKVILLE MO', 'TAYLOR', 'GM/GA/GE');
 
+    notes = '';
     ownCall = '';
     otherCall = '';
     greeting = 'GM';
@@ -109,6 +111,18 @@ export class CwCheatSheetComponent implements OnInit {
 
     updateField(field: CheatSheetField, value: string): void {
         this[field] = value.toUpperCase();
+        this.persistState();
+    }
+
+    updateNotes(textarea: HTMLTextAreaElement): void {
+        const value = textarea.value;
+        const start = value.slice(0, textarea.selectionStart).toUpperCase().length;
+        const end = value.slice(0, textarea.selectionEnd).toUpperCase().length;
+        this.notes = value.toUpperCase();
+        if (textarea.value !== this.notes) {
+            textarea.value = this.notes;
+            textarea.setSelectionRange(start, end);
+        }
         this.persistState();
     }
 
