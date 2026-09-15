@@ -1,4 +1,5 @@
 from app.db import get_connection
+from app.roster_seed import import_club_roster
 
 
 def ensure_cw_metrics_table():
@@ -362,3 +363,4 @@ def initialize_schema():
     ensure_cw_operators_table()
     ensure_net_control_state_table()
     ensure_net_control_tables()
+    import_club_roster()
