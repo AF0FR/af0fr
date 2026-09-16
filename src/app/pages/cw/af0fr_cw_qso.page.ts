@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { CwWorkspaceView, TrainerHeader } from './trainer-header/trainer-header.component';
 import { CwCheatSheetComponent } from './cw-cheat-sheet/cw-cheat-sheet.component';
 import { standardCq, standardExchange } from './cw-protocol';
+import { AF0FR_PHASES, AF0FR_SPEEDS, MethodPosition, MethodSpeed, MethodVoiceOptions, MethodPlaybackStep, DEFAULT_METHOD_VOICE_OPTIONS, METHOD_PAUSE_SECONDS, buildMethodSteps, nextMethodPosition, previousMethodPosition } from './af0fr-method';
 
 type PracticeMode = 'letters' | 'numbers' | 'lettersNumbers' | 'mixed' | 'callsigns' | 'qsoWords' | 'qso';
 type TrainingGoal = 'learn' | 'speed' | 'accuracy' | 'weaknesses' | 'qso';
@@ -61,6 +62,12 @@ interface CwOperatorProfile {
 }
 
 interface CwUiState {
+    methodPhase?: number;
+    methodSpeed?: MethodSpeed;
+    methodWordPlays?: number;
+    methodPhasePasses?: number;
+    methodLetterPlays?: number;
+    methodVoice?: MethodVoiceOptions;
     uiStateVersion: number;
     activeWorkspace: WorkspaceView;
     showAllMetricConditions: boolean;
@@ -243,7 +250,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     wordCategory: WordCategory = 'all';
     audioEffect: AudioEffect = 'clean';
     wpm = 20;
-    farnsworthWpm = 10;
+    farnsworthWpm = 20;
     tone = 550;
     groupSize = 5;
     groupCount = 5;
@@ -269,6 +276,187 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     isPlaying = false;
     isPaused = false;
     hasChecked = false;
+    readonly methodPhases = AF0FR_PHASES;
+    readonly methodSpeeds = AF0FR_SPEEDS;
+    readonly methodSpeedOptions: MethodSpeed[] = ['slow', 'medium', 'fast'];
+    methodActive = false;
+    methodSpeed: MethodSpeed = 'medium';
+    methodWordPlays = 5;
+    methodLetterPlays = 1;
+    methodVoice: MethodVoiceOptions = { ...DEFAULT_METHOD_VOICE_OPTIONS };
+    readonly methodTimelineParts = [
+        { id: 'instruction', label: 'Instruction · CW ×3', voice: true },
+        { id: 'word', label: 'Word', voice: false },
+        { id: 'sayLetterBefore', label: 'Say letter', voice: true },
+        { id: 'letter', label: 'Letter', voice: false },
+    ];
+
+    get activeMethodTimelinePart(): string | null {
+        if (!this.exercise || this.methodComplete || (!this.isPlaying && !this.isPaused)) return null;
+        return this.methodSteps[this.methodStepIndex]?.part ?? null;
+    }
+
+    methodSteps: MethodPlaybackStep[] = [];
+    methodStepIndex = 0;
+    methodSpeechMessage = '';
+    private methodStepPrepared = false;
+    private methodVoiceRequestId = 0;
+    private methodVoiceLoading = false;
+    private readonly methodVoiceBuffers = new Map<string, Promise<AudioBuffer>>();
+    methodPhasePasses = 1;
+    methodPosition: MethodPosition = { phase: 0, element: 0, pass: 0 };
+    methodComplete = false;
+    private regularSettings: CwUiState | null = null;
+
+
+    get methodPhase() { return this.methodPhases[this.methodPosition.phase]; }
+    get methodSpeedPreset() { return this.methodSpeeds[this.methodSpeed]; }
+    get canPreviousMethodElement(): boolean {
+        return previousMethodPosition(this.methodPosition, this.methodPhasePasses) !== null;
+    }
+    get speechAvailable(): boolean {
+        return typeof window !== 'undefined' && Boolean(window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext);
+    }
+    get methodPlaybackLabel(): string {
+        if (this.methodComplete) return 'Course complete';
+        if (this.methodVoiceLoading) return 'Loading voice…';
+        const label = this.methodSteps[this.methodStepIndex]?.label ?? 'Ready';
+        return this.isPlaying ? label : this.isPaused ? `Paused · ${label}` : 'Ready';
+    }
+    get methodStepProgress(): number {
+        return this.progressPercent;
+    }
+
+    toggleMethodVoice(key: keyof MethodVoiceOptions, checked: boolean): void {
+        const wasPlaying = this.isPlaying;
+        const wasPaused = this.isPaused;
+        const oldSteps = this.methodSteps;
+        const oldIndex = this.methodStepIndex;
+        this.methodVoice = { ...this.methodVoice, [key]: checked };
+        this.clearPlayback(false);
+        this.isPlaying = false;
+        this.isPaused = false;
+        this.prepareMethodTimeline();
+        this.playbackPosition = 0;
+        if (this.exercise) {
+            // Keep the current step, or move to the next surviving step when a cue is removed.
+            let nextIndex = -1;
+            for (let index = oldIndex; index < oldSteps.length && nextIndex < 0; index++) {
+                const label = oldSteps[index].label;
+                const occurrence = oldSteps.slice(0, index).filter(step => step.label === label).length;
+                nextIndex = this.methodSteps.map((step, i) => step.label === label ? i : -1).filter(i => i >= 0)[occurrence] ?? -1;
+            }
+            if (nextIndex >= 0) {
+                this.methodStepIndex = nextIndex;
+                this.isPaused = wasPaused;
+                if (wasPlaying) this.play();
+            } else if (wasPlaying) {
+                this.advanceMethod();
+            }
+        }
+        this.persistUiState();
+    }
+
+    jumpToMethodStep(index: number): void {
+        if (!this.methodActive || index < 0 || index >= this.methodSteps.length) return;
+        if (!this.exercise) this.loadMethodElement(false);
+        this.stop();
+        this.methodComplete = false;
+        this.methodStepIndex = index;
+        this.play();
+    }
+
+    get practiceSpeedLabel(): string {
+        if (this.methodActive) return `${this.methodSpeedPreset.word.join('/')} WPM words · ${this.methodSpeedPreset.letter.join('/')} WPM letters`;
+        return `${this.wpm}/${this.farnsworthWpm} WPM`;
+    }
+
+    toggleMethod(): void {
+        this.stop();
+        if (this.methodActive) {
+            this.methodActive = false;
+            const saved = this.regularSettings;
+            this.regularSettings = null;
+            if (saved) this.applyUiState({ ...saved, methodPhase: this.methodPosition.phase, methodSpeed: this.methodSpeed, methodWordPlays: this.methodWordPlays, methodPhasePasses: this.methodPhasePasses, methodLetterPlays: this.methodLetterPlays, methodVoice: this.methodVoice });
+        } else {
+            this.regularSettings = this.currentUiState();
+            this.methodActive = true;
+            this.mode = 'qsoWords';
+            this.applyExerciseFormat('continuous');
+            this.methodPosition = { phase: this.methodPosition.phase, element: 0, pass: 0 };
+        }
+        this.resetExercise();
+        this.persistUiState();
+    }
+
+    selectMethodPhase(value: string): void {
+        const phase = Number(value);
+        if (!Number.isInteger(phase) || phase < 0 || phase >= this.methodPhases.length) return;
+        this.methodPosition = { phase, element: 0, pass: 0 };
+        this.resetExercise();
+        this.persistUiState();
+    }
+
+    selectMethodSpeed(value: string): void {
+        if (!this.methodSpeedOptions.includes(value as MethodSpeed)) return;
+        this.methodSpeed = value as MethodSpeed;
+        this.resetExercise();
+        this.persistUiState();
+    }
+
+    updateMethodRepeat(setting: 'methodWordPlays' | 'methodLetterPlays' | 'methodPhasePasses', value: string): void {
+        const count = Number(value);
+        if (!Number.isFinite(count)) return;
+        this[setting] = Math.min(20, Math.max(1, Math.round(count)));
+        this.methodPosition = { ...this.methodPosition, element: 0, pass: 0 };
+        this.resetExercise();
+        this.persistUiState();
+    }
+
+    previousMethodElement(): void {
+        const previous = previousMethodPosition(this.methodPosition, this.methodPhasePasses);
+        if (!previous) return;
+        this.methodPosition = previous;
+        this.loadMethodElement();
+    }
+
+    replayMethodElement(): void {
+        this.loadMethodElement();
+    }
+
+    repeatMethodPhase(): void {
+        this.methodPosition = { ...this.methodPosition, element: 0, pass: 0 };
+        this.loadMethodElement();
+    }
+
+    private advanceMethod(): void {
+        const next = nextMethodPosition(this.methodPosition, this.methodPhasePasses);
+        if (!next) {
+            this.stop();
+            this.methodComplete = true;
+            return;
+        }
+        this.methodPosition = next;
+        this.loadMethodElement();
+    }
+
+    private loadMethodElement(playImmediately = true): void {
+        this.stop();
+        this.methodComplete = false;
+        this.listeningOnly = true;
+        this.exercise = this.methodPhase.elements[this.methodPosition.element];
+        this.exerciseContext = `AF0FR Method · Phase ${this.methodPosition.phase + 1} of ${this.methodPhases.length}`;
+        this.copy = '';
+        this.hasChecked = false;
+        this.answerRevealed = false;
+        this.expectedMarks = [];
+        this.copyMarks = [];
+        this.exercisePlayCount = 0;
+        this.prepareTimeline();
+        this.persistUiState();
+        if (playImmediately) this.play();
+    }
+
     private wordHistory: GeneratedExercise[] = [];
     wordHistoryIndex = -1;
     private advanceTimer: number | null = null;
@@ -294,6 +482,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     get contentTags(): string[] {
+        if (this.methodActive) return [...this.methodPhase.elements];
         if (this.mode === 'qsoWords') return [...new Set(this.wordCategory === 'all' ? Object.values(this.vocabulary).flat() : this.vocabulary[this.wordCategory])].sort();
         if (this.mode === 'letters' && this.usesWordTags) return [...new Set(this.commonCombinations)].sort();
         if (this.mode === 'qso') return [...new Set((this.exercise || this.previewExercise.text).split(/\s+/).filter(Boolean))].sort();
@@ -317,6 +506,11 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     startExercise(listeningOnly = false): void {
+        if (this.methodActive) {
+            this.contentTagsHidden = false;
+            this.loadMethodElement();
+            return;
+        }
         this.listeningOnly = listeningOnly;
         this.contentTagsHidden = false;
         this.newExercise();
@@ -436,7 +630,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     ];
 
     readonly vocabulary: Record<Exclude<WordCategory, 'all'>, readonly string[]> = {
-        core: ['CQ', 'DE', 'K', 'BK', 'GM', 'GA', 'GE', 'ES', 'TNX', 'FER', 'CALL', 'RPT', 'RST', 'QTH', 'NAME', 'OP', 'FB', 'CPY', 'INFO', '73', 'TU'],
+        core: ['CQ', 'DE', 'K', 'BK', 'GM', 'GA', 'GE', 'ES', 'TNX', 'FER', 'CALL', 'RPRT', 'RST', 'QTH', 'NAME', 'OP', 'FB', 'CPY', 'INFO', '73', 'TU'],
         prosigns: ['AR', 'AS', 'BT', 'BK', 'K', 'KN', 'SK', 'CL'],
         qsignals: ['QRL', 'QRS', 'QRQ', 'QSL', 'QTH', 'QSO'],
         abbreviations: [
@@ -446,11 +640,11 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
             'GA', 'GE', 'GG', 'GM', 'GN', 'GND', 'GUD', 'HI', 'HPE', 'HR', 'HV',
             'HW', 'KN', 'LID', 'MNI', 'MSG', 'N', 'NIL', 'NR', 'NW',
             'NX', 'OB', 'OC', 'OM', 'OP', 'OT', 'PSE', 'PWR', 'PX',
-            'R', 'RCVR', 'RFI', 'RIG', 'RPT', 'RST', 'RX', 'SED', 'SEZ', 'SIG', 'SIGS', 'SK', 'SKED', 'SN', 'SRI', 'SSB',
+            'R', 'RCVR', 'RFI', 'RIG', 'RPRT', 'RPT', 'RST', 'RX', 'SED', 'SEZ', 'SIG', 'SIGS', 'SK', 'SKED', 'SN', 'SRI', 'SSB',
             'STN', 'T', 'TEMP', 'TFC', 'TKS', 'TMW', 'TNX', 'TT', 'TU', 'TX', 'U', 'UR', 'URS', 'VY', 'W', 'WC', 'WDS', 'WID', 'WKD',
             'WKG', 'WL', 'WUD', 'WX', 'XCVR', 'XMTR', 'XYL', 'YF', 'YL', 'YRS', ],
         recovery: ['QRS', 'PSE', 'SRI', 'NIL', 'AGN', ],
-        ragchew: ['AGE', 'ANT', 'BEEN', 'CLUB', 'HAM', 'KEY', 'PADDLE', 'POTA', 'QRP', 'RIG', 'SKCC', 'SOTA', 'TEMP', 'W', 'WX', 'YRS'],
+        ragchew: ['AGE', 'ANT', 'BEEN', 'CLUB', 'HAM', 'JOB', 'KEY', 'PADDLE', 'POTA', 'QRP', 'RIG', 'SKCC', 'SOTA', 'TEMP', 'W', 'WX', 'YRS'],
     };
 
     readonly prosignGlossary = [
@@ -489,6 +683,12 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         GE: { meaning: 'Good evening', kind: 'Abbreviation' },
         GM: { meaning: 'Good morning', kind: 'Abbreviation' },
         HAM: { meaning: 'Amateur radio operator', kind: 'Operating term' },
+        JOB: { meaning: 'Work or occupation', kind: 'Operating term' },
+        JIM: { meaning: 'An operator’s name', kind: 'Operating term' },
+        QRM: { meaning: 'Interference from other signals', kind: 'Q signal' },
+        QRN: { meaning: 'Atmospheric noise or static', kind: 'Q signal' },
+        QSY: { meaning: 'Change frequency', kind: 'Q signal' },
+        QSB: { meaning: 'Signal fading', kind: 'Q signal' },
         HPE: { meaning: 'Hope', kind: 'Abbreviation' },
         HP: { meaning: 'Hope', kind: 'Abbreviation' },
         HR: { meaning: 'Here or hear', kind: 'Abbreviation' },
@@ -580,7 +780,8 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         'PX': { meaning: "Prefix", kind: 'Abbreviation' },
         'RCVR': { meaning: "Receiver", kind: 'Abbreviation' },
         'RFI': { meaning: "Radio frequency interference", kind: 'Abbreviation' },
-        'RPT': { meaning: "Repeat or report, depending on context", kind: 'Abbreviation' },
+        RPT: { meaning: 'Repeat', kind: 'Abbreviation' },
+        RPRT: { meaning: 'Report', kind: 'Abbreviation' },
         'RX': { meaning: "Receiver", kind: 'Abbreviation' },
         'SED': { meaning: "Said", kind: 'Abbreviation' },
         'SEZ': { meaning: "Says", kind: 'Abbreviation' },
@@ -623,7 +824,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     private practiceAttempts: CwPracticeAttempt[] = [];
     private exercisePlayCount = 0;
     private sessionId = this.createSessionId();
-    private readonly uiStateVersion = 3;
+    private readonly uiStateVersion = 4;
 
     private readonly morse: Record<string, string> = {
         A: '.-', B: '-...', C: '-.-.', D: '-..', E: '.', F: '..-.', G: '--.',
@@ -638,7 +839,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     private readonly joinedProsigns = new Set(['AR', 'AS', 'BT', 'KN', 'SK']);
     private readonly audioPaddingSeconds = 1;
 
-    constructor(private http: HttpClient) {
+    constructor(private http: HttpClient, private zone: NgZone) {
         this.initializeOperatorState();
         this.previewExercise = this.generateExercise();
         this.pendingMetricCount = this.readPendingMetrics().length;
@@ -721,14 +922,17 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     get activeContentLabel(): string {
+        if (this.methodActive) return `AF0FR Method · Phase ${this.methodPosition.phase + 1}`;
         return this.modes.find((option) => option.value === this.mode)?.label ?? this.mode;
     }
 
     get activeExerciseFormatLabel(): string {
+        if (this.methodActive) return 'Guided listening';
         return this.exerciseFormats.find((format) => format.value === this.exerciseFormat)?.label ?? this.exerciseFormat;
     }
 
     get sessionLengthLabel(): string {
+        if (this.methodActive) return `${this.methodPhase.elements.length} elements · ${this.methodPhasePasses} phase pass${this.methodPhasePasses === 1 ? '' : 'es'}`;
         if (this.mode === 'qsoWords') return 'Continuous words';
         if (this.exerciseFormat === 'instant') return 'One character at a time';
         if (this.exerciseFormat === 'continuous') return `${this.timedMinutes}-minute stream`;
@@ -971,6 +1175,13 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         return this.prosignGlossary.filter((item) => tokens.has(item.token));
     }
 
+    get poolQsoDefinitions(): QsoDefinition[] {
+        if (this.mode !== 'qsoWords') return [];
+        return [...this.contentTags].sort()
+            .filter((token) => Boolean(this.qsoGlossary[token]))
+            .map((token) => ({ token, ...this.qsoGlossary[token] }));
+    }
+
     get activeQsoDefinitions(): QsoDefinition[] {
         if (this.mode !== 'qso' && this.mode !== 'qsoWords') return [];
         const exerciseTokens = this.exercise.split(/\s+/).filter(Boolean);
@@ -1139,6 +1350,11 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     newExercise(playImmediately = true): void {
+        if (this.methodActive) {
+            if (!this.exercise) this.loadMethodElement(playImmediately);
+            else this.advanceMethod();
+            return;
+        }
         this.stop();
         let generated: GeneratedExercise;
         if (this.mode === 'qsoWords') {
@@ -1174,6 +1390,21 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     play(): void {
+        if (this.methodActive) {
+            if (!this.exercise) this.loadMethodElement(false);
+            if (this.methodComplete) {
+                this.methodComplete = false;
+                this.methodStepIndex = 0;
+                this.methodStepPrepared = false;
+            }
+            const step = this.methodSteps[this.methodStepIndex];
+            if (!step) return;
+            if (step.kind === 'speech') {
+                void this.playMethodSpeech(step);
+                return;
+            }
+            if (!this.methodStepPrepared) this.prepareMethodStepAudio(step);
+        }
         if (!this.exercise) this.newExercise(false);
         const startingFromBeginning = this.playbackPosition <= 0 || this.playbackPosition >= this.playbackDuration;
         if (this.playbackPosition >= this.playbackDuration) this.playbackPosition = 0;
@@ -1190,8 +1421,9 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         const context = this.audioContext;
         const startAt = context.currentTime + 0.05;
         const offset = this.playbackPosition;
+        const effect = this.methodActive ? 'clean' : this.audioEffect;
         const master = context.createGain();
-        master.gain.value = this.audioEffect === 'challenging' ? 0.09 : 0.12;
+        master.gain.value = effect === 'challenging' ? 0.09 : 0.12;
         master.connect(context.destination);
 
         const oscillator = context.createOscillator();
@@ -1205,8 +1437,8 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         events.filter((event) => event.start + event.duration > offset).forEach((event) => {
             const elapsed = Math.max(0, offset - event.start);
             const duration = event.duration - elapsed;
-            const qsb = this.audioEffect === 'clean' ? 1 : 0.45 + Math.random() * 0.55;
-            const drift = this.audioEffect === 'challenging' ? (Math.random() - 0.5) * 24 : this.audioEffect === 'light' ? (Math.random() - 0.5) * 6 : 0;
+            const qsb = effect === 'clean' ? 1 : 0.45 + Math.random() * 0.55;
+            const drift = effect === 'challenging' ? (Math.random() - 0.5) * 24 : effect === 'light' ? (Math.random() - 0.5) * 6 : 0;
             const eventStart = startAt + Math.max(0, event.start - offset);
             oscillator.frequency.setValueAtTime(this.tone + drift, eventStart);
             envelope.gain.setValueAtTime(0.001, eventStart);
@@ -1218,7 +1450,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         oscillator.stop(startAt + Math.max(0.01, this.playbackDuration - offset));
         this.activeSources.push(oscillator);
 
-        if (this.audioEffect !== 'clean') this.scheduleNoise(startAt, this.playbackDuration - offset, master);
+        if (effect !== 'clean') this.scheduleNoise(startAt, this.playbackDuration - offset, master);
 
         this.playbackStartedAt = startAt;
         this.playbackOffset = offset;
@@ -1248,6 +1480,10 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
 
     stop(): void {
         this.clearPlayback(true);
+        if (this.methodActive) {
+            this.methodStepIndex = 0;
+            this.methodStepPrepared = false;
+        }
     }
 
     onCopyInput(value: string): void {
@@ -1309,12 +1545,14 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     resetSession(): void {
         this.stop();
         this.exercise = '';
+        this.methodComplete = false;
         this.wordHistory = [];
         this.wordHistoryIndex = -1;
         this.exerciseContext = '';
         this.listeningOnly = false;
         this.contentTagsHidden = false;
         this.previewExercise = this.generateExercise();
+        if (this.methodActive) this.prepareMethodTimeline();
         this.copy = '';
         this.hasChecked = false;
         this.answerRevealed = false;
@@ -1407,12 +1645,14 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     private resetExercise(): void {
         this.stop();
         this.exercise = '';
+        this.methodComplete = false;
         this.wordHistory = [];
         this.wordHistoryIndex = -1;
         this.exerciseContext = '';
         this.listeningOnly = false;
         this.contentTagsHidden = false;
         this.previewExercise = this.generateExercise();
+        if (this.methodActive) this.prepareMethodTimeline();
         this.copy = '';
         this.hasChecked = false;
         this.answerRevealed = false;
@@ -1449,6 +1689,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     private generateExercise(): GeneratedExercise {
+        if (this.methodActive) return { text: this.methodPhase.elements[this.methodPosition.element], context: `AF0FR Method · Phase ${this.methodPosition.phase + 1}` };
         let generated: GeneratedExercise;
         if (this.mode === 'callsigns') generated = { text: Array.from({ length: this.groupCount }, () => this.randomCallsign()).join(' '), context: 'Copy the callsigns' };
         else if (this.mode === 'qsoWords') generated = { text: this.generateQsoWords(), context: `${this.wordCategories.find((item) => item.value === this.wordCategory)?.label} drill` };
@@ -1607,6 +1848,10 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     private prepareTimeline(): void {
+        if (this.methodActive) {
+            this.prepareMethodTimeline();
+            return;
+        }
         const baseTimeline = this.buildTimeline();
         const baseDuration = baseTimeline.length
             ? baseTimeline[baseTimeline.length - 1].start + baseTimeline[baseTimeline.length - 1].duration
@@ -1641,12 +1886,121 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         this.playbackPosition = 0;
     }
 
-    private buildTimeline(): ToneEvent[] {
-        const dot = 1.2 / this.wpm;
-        const spacingUnit = Math.max(dot, (60 / this.farnsworthWpm - 31 * dot) / 19);
+    private prepareMethodTimeline(): void {
+        const word = this.exercise || this.previewExercise.text;
+        const focus = this.methodPhase.focusLetters[this.methodPosition.element];
+        this.methodSteps = buildMethodSteps(word, focus, this.morse[focus], this.methodSpeed, this.methodWordPlays, this.methodLetterPlays, this.methodVoice);
+        this.methodStepIndex = 0;
+        this.methodStepPrepared = false;
+        this.methodSpeechMessage = '';
+        this.timeline = [];
+        this.tagTimings = [];
+        this.playbackPosition = 0;
+        this.playbackDuration = 0;
+    }
+
+    private prepareMethodStepAudio(step: Extract<MethodPlaybackStep, { kind: 'morse' }>): void {
+        const events = this.buildTimeline(step.wpm, step.farnsworthWpm, step.text);
+        const offset = METHOD_PAUSE_SECONDS;
+        const dot = 1.2 / step.wpm;
+        const spacing = Math.max(dot, (60 / step.farnsworthWpm - 31 * dot) / 19);
+        this.timeline = events.map((event) => ({ ...event, start: event.start + offset }));
+        const last = this.timeline[this.timeline.length - 1];
+        const end = last ? last.start + last.duration : offset;
+        this.tagTimings = [{ index: this.contentTags.indexOf(this.exercise), start: offset, end }];
+        this.playbackDuration = end + Math.max(METHOD_PAUSE_SECONDS, spacing * (step.part === 'letter' ? 3 : 7));
+        this.playbackPosition = 0;
+        this.methodStepPrepared = true;
+    }
+
+    private async playMethodSpeech(step: Extract<MethodPlaybackStep, { kind: 'speech' }>): Promise<void> {
+        const offset = this.isPaused ? this.playbackPosition : 0;
+        this.clearPlayback(false);
+        const requestId = this.methodVoiceRequestId;
+        this.playbackPosition = offset;
+        this.playbackDuration = 0;
+        const AudioContextClass = window.AudioContext
+            ?? (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (!AudioContextClass) {
+            this.methodSpeechMessage = 'Audio playback is unavailable in this browser.';
+            this.isPaused = true;
+            return;
+        }
+        this.audioContext ??= new AudioContextClass();
+        const context = this.audioContext;
+        this.methodVoiceLoading = true;
+        this.methodSpeechMessage = '';
+        this.isPlaying = true;
+        this.isPaused = false;
+        try {
+            // Resume during the Play gesture; recordings and Morse share this context.
+            await context.resume();
+            const buffer = await this.loadMethodVoice(step.audioKey, context);
+            if (requestId !== this.methodVoiceRequestId || !this.methodActive) return;
+            this.zone.run(() => {
+                this.methodVoiceLoading = false;
+                const duration = buffer.duration + 2 * METHOD_PAUSE_SECONDS;
+                const playbackOffset = offset < duration ? offset : 0;
+                const source = context.createBufferSource();
+                const volume = context.createGain();
+                volume.gain.value = 0.8;
+                source.buffer = buffer;
+                source.connect(volume);
+                volume.connect(context.destination);
+                const startAt = context.currentTime + 0.05;
+                if (playbackOffset < METHOD_PAUSE_SECONDS + buffer.duration) {
+                    source.start(startAt + Math.max(0, METHOD_PAUSE_SECONDS - playbackOffset), Math.max(0, playbackOffset - METHOD_PAUSE_SECONDS));
+                    this.activeSources.push(source);
+                }
+                this.playbackDuration = duration;
+                this.playbackPosition = playbackOffset;
+                this.playbackOffset = playbackOffset;
+                this.playbackStartedAt = startAt;
+                this.tagTimings = [{ index: this.contentTags.indexOf(this.exercise), start: METHOD_PAUSE_SECONDS, end: METHOD_PAUSE_SECONDS + buffer.duration }];
+                this.progressTimer = window.setInterval(() => this.updatePlaybackPosition(), 100);
+                this.playbackTimer = window.setTimeout(() => this.finishPlayback(), (duration - playbackOffset + 0.1) * 1000);
+            });
+        } catch {
+            if (requestId !== this.methodVoiceRequestId || !this.methodActive) return;
+            this.zone.run(() => {
+                this.methodVoiceLoading = false;
+                this.isPlaying = false;
+                this.isPaused = true;
+                this.methodSpeechMessage = 'Voice audio could not load. Check your connection and press Resume to retry.';
+            });
+        }
+    }
+
+    private loadMethodVoice(key: string, context: AudioContext): Promise<AudioBuffer> {
+        const cached = this.methodVoiceBuffers.get(key);
+        if (cached) return cached;
+        const url = new URL(`assets/cw-voice/${encodeURIComponent(key)}.mp3?v=3`, document.baseURI);
+        const request = fetch(url).then((response) => {
+            if (!response.ok) throw new Error('Voice recording unavailable');
+            return response.arrayBuffer();
+        }).then((data) => context.decodeAudioData(data)).catch((error: unknown) => {
+            this.methodVoiceBuffers.delete(key);
+            throw error;
+        });
+        this.methodVoiceBuffers.set(key, request);
+        return request;
+    }
+
+    private finishMethodStep(): void {
+        this.clearPlayback(false);
+        this.isPaused = false;
+        this.methodStepIndex += 1;
+        this.methodStepPrepared = false;
+        if (this.methodStepIndex >= this.methodSteps.length) this.advanceMethod();
+        else this.play();
+    }
+
+    private buildTimeline(wpm = this.wpm, farnsworthWpm = this.farnsworthWpm, text = this.exercise): ToneEvent[] {
+        const dot = 1.2 / wpm;
+        const spacingUnit = Math.max(dot, (60 / farnsworthWpm - 31 * dot) / 19);
         const events: ToneEvent[] = [];
         let cursor = 0;
-        const words = this.exercise.split(/\s+/).filter(Boolean);
+        const words = text.split(/\s+/).filter(Boolean);
         this.baseTagTimings = [];
         const tags = this.contentTags;
 
@@ -1702,6 +2056,10 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         this.playbackPosition = this.playbackDuration;
         this.clearPlayback(false);
         this.isPaused = false;
+        if (this.methodActive) {
+            this.finishMethodStep();
+            return;
+        }
         if (this.mode === 'qsoWords' && this.listeningOnly) {
             this.newExercise();
             return;
@@ -1710,6 +2068,8 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     private clearPlayback(resetPosition: boolean): void {
+        this.methodVoiceRequestId += 1;
+        this.methodVoiceLoading = false;
         if (this.advanceTimer !== null) window.clearTimeout(this.advanceTimer);
         this.advanceTimer = null;
         this.activeSources.forEach((source) => {
@@ -2206,6 +2566,17 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     private resetLocalStateDefaults(): void {
+        this.methodActive = false;
+        this.methodSpeed = 'medium';
+        this.methodWordPlays = 5;
+        this.methodLetterPlays = 1;
+        this.methodVoice = { ...DEFAULT_METHOD_VOICE_OPTIONS };
+        this.methodSteps = [];
+        this.methodStepIndex = 0;
+        this.methodPhasePasses = 1;
+        this.methodPosition = { phase: 0, element: 0, pass: 0 };
+        this.methodComplete = false;
+        this.regularSettings = null;
         this.mode = 'letters';
         this.trainingGoal = 'accuracy';
         this.exerciseFormat = 'groups';
@@ -2219,7 +2590,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         this.wordCategory = 'all';
         this.audioEffect = 'clean';
         this.wpm = 20;
-        this.farnsworthWpm = 10;
+        this.farnsworthWpm = 20;
         this.tone = 550;
         this.groupSize = 5;
         this.groupCount = 5;
@@ -2247,6 +2618,17 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
 
     private applyUiState(ui: Partial<CwUiState> | null): void {
         if (!ui) return;
+        if (Number.isInteger(ui.methodPhase) && ui.methodPhase! >= 0 && ui.methodPhase! < this.methodPhases.length) this.methodPosition = { phase: ui.methodPhase!, element: 0, pass: 0 };
+        if (ui.methodSpeed && this.methodSpeedOptions.includes(ui.methodSpeed)) this.methodSpeed = ui.methodSpeed;
+        if (Number.isFinite(ui.methodLetterPlays)) this.methodLetterPlays = Math.min(20, Math.max(1, Math.round(ui.methodLetterPlays!)));
+        if (ui.methodVoice) {
+            const voice = ui.methodVoice as Partial<MethodVoiceOptions> & Record<string, unknown>;
+            this.methodVoice.provideInstruction = typeof voice.provideInstruction === 'boolean'
+                ? voice.provideInstruction
+                : voice['giveInstruction'] === true || voice['sayWordBefore'] === true || voice['sayLetterBefore'] === true;
+        }
+        if (Number.isFinite(ui.methodWordPlays)) this.methodWordPlays = Math.min(20, Math.max(1, Math.round(ui.methodWordPlays!)));
+        if (Number.isFinite(ui.methodPhasePasses)) this.methodPhasePasses = Math.min(20, Math.max(1, Math.round(ui.methodPhasePasses!)));
         if (ui.activeWorkspace) this.activeWorkspace = ui.activeWorkspace;
         if (typeof ui.showAllMetricConditions === 'boolean') this.showAllMetricConditions = ui.showAllMetricConditions;
         if (ui.trainingGoal) this.trainingGoal = ui.trainingGoal;
@@ -2254,9 +2636,9 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         if (ui.exerciseFormat) this.exerciseFormat = ui.exerciseFormat;
         if (ui.wpm) this.wpm = ui.wpm;
         if (ui.farnsworthWpm) this.farnsworthWpm = Math.min(ui.farnsworthWpm, this.wpm);
-        if ((ui.uiStateVersion ?? 1) < 3 && ui.wpm === 17 && ui.farnsworthWpm === 7) {
+        if ((ui.uiStateVersion ?? 1) < 4 && ((ui.wpm === 17 && ui.farnsworthWpm === 7) || (ui.wpm === 20 && ui.farnsworthWpm === 10))) {
             this.wpm = 20;
-            this.farnsworthWpm = 10;
+            this.farnsworthWpm = 20;
         }
         if (ui.audioEffect) this.audioEffect = ui.audioEffect;
         if (ui.groupSize) this.groupSize = ui.groupSize;
@@ -2330,7 +2712,22 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     private currentUiState(): CwUiState {
+        if (this.methodActive && this.regularSettings) return {
+            ...this.regularSettings,
+            methodPhase: this.methodPosition.phase,
+            methodSpeed: this.methodSpeed,
+            methodWordPlays: this.methodWordPlays,
+            methodLetterPlays: this.methodLetterPlays,
+            methodVoice: { ...this.methodVoice },
+            methodPhasePasses: this.methodPhasePasses,
+        };
         return {
+            methodPhase: this.methodPosition.phase,
+            methodSpeed: this.methodSpeed,
+            methodWordPlays: this.methodWordPlays,
+            methodLetterPlays: this.methodLetterPlays,
+            methodVoice: { ...this.methodVoice },
+            methodPhasePasses: this.methodPhasePasses,
             uiStateVersion: this.uiStateVersion,
             activeWorkspace: this.activeWorkspace,
             showAllMetricConditions: this.showAllMetricConditions,
@@ -2515,7 +2912,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     private spacingVariation(): number {
-        if (this.audioEffect === 'clean') return 1;
+        if (this.methodActive || this.audioEffect === 'clean') return 1;
         const range = this.audioEffect === 'light' ? 0.1 : 0.25;
         return 1 - range + Math.random() * range * 2;
     }

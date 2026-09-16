@@ -9,7 +9,7 @@
         />
 
         <div *ngIf="activeWorkspace === 'practice'" class="flex items-center justify-between gap-3 rounded-2xl bg-white p-3 shadow-xl lg:hidden">
-            <div class="min-w-0"><div class="truncate text-sm font-black">{{ activeContentLabel }} · {{ activeExerciseFormatLabel }}</div><div class="truncate text-xs text-slate-500">{{ wpm }}/{{ farnsworthWpm }} WPM · {{ audioEffect }} · {{ sessionLengthLabel }}</div></div>
+            <div class="min-w-0"><div class="truncate text-sm font-black">{{ activeContentLabel }} · {{ activeExerciseFormatLabel }}</div><div class="truncate text-xs text-slate-500">{{ practiceSpeedLabel }} · {{ methodActive ? 'clean' : audioEffect }} · {{ sessionLengthLabel }}</div></div>
             <button #mobileSetupTrigger type="button" class="min-h-11 shrink-0 rounded-xl bg-slate-950 px-4 text-sm font-black text-white" aria-haspopup="dialog" [attr.aria-expanded]="mobileSetupOpen" (click)="openMobileSetup()">Adjust</button>
         </div>
 
@@ -19,6 +19,30 @@
         <cw-cheat-sheet *ngIf="activeWorkspace === 'cheatSheet'" />
         <aside #mobileSetupDrawer *ngIf="activeWorkspace === 'practice'" class="fixed inset-x-2 bottom-2 top-14 z-[9998] hidden max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain rounded-2xl bg-white p-2 shadow-2xl outline-none sm:inset-x-3 sm:bottom-3 sm:top-16 sm:max-h-[calc(100dvh-4.75rem)] sm:p-5 lg:sticky lg:top-4 lg:block lg:max-h-[calc(100vh-2rem)] lg:rounded-3xl" [class.!block]="mobileSetupOpen" tabindex="-1" [attr.role]="mobileSetupOpen ? 'dialog' : null" [attr.aria-modal]="mobileSetupOpen ? 'true' : null" [attr.aria-label]="mobileSetupOpen ? 'Session settings' : null">
             <div class="sticky -top-2 z-10 -mx-2 mb-2 flex items-center justify-between border-b border-slate-100 bg-white/95 px-2 py-2 backdrop-blur sm:static sm:mx-0 sm:mb-3 sm:border-0 sm:bg-transparent sm:p-0 lg:hidden"><strong>Adjust session</strong><button type="button" class="min-h-10 rounded-xl bg-slate-100 px-4 text-sm font-black" (click)="closeMobileSetup()">Done</button></div>
+            <button type="button" class="mb-3 min-h-12 w-full rounded-xl border-2 border-orange-500 px-4 py-3 text-left font-black" [class.bg-orange-500]="methodActive" [class.text-white]="methodActive" [attr.aria-pressed]="methodActive" (click)="toggleMethod()">AF0FR Method<span class="mt-1 block text-xs font-normal">{{ methodActive ? 'Selected · Click to return to custom practice' : 'Learn whole words through 12 listening phases' }}</span></button>
+            <section *ngIf="methodActive" class="space-y-4 rounded-xl bg-orange-50 p-3" aria-label="AF0FR Method settings">
+                <label class="block">
+                    <span class="text-xs font-black uppercase tracking-wider text-slate-600">Phase</span>
+                    <select class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-semibold" [value]="methodPosition.phase" (change)="selectMethodPhase($any($event.target).value)">
+                        <option *ngFor="let phase of methodPhases; let index = index" [value]="index" [selected]="methodPosition.phase === index">Phase {{ index + 1 }} · {{ phase.elements.join(', ') }}</option>
+                    </select>
+                </label>
+                <label class="block">
+                    <span class="text-xs font-black uppercase tracking-wider text-slate-600">Speed mode</span>
+                    <select class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-semibold" [value]="methodSpeed" (change)="selectMethodSpeed($any($event.target).value)">
+                        <option *ngFor="let speed of methodSpeedOptions" [value]="speed" [selected]="methodSpeed === speed">{{ methodSpeeds[speed].label }}</option>
+                    </select>
+                    <span class="mt-2 block text-xs text-slate-600">Words: {{ methodSpeedPreset.word.join('/') }} WPM<br>Letters: {{ methodSpeedPreset.letter.join('/') }} WPM</span>
+                </label>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="block"><span class="text-sm font-bold">Word plays</span><input type="number" min="1" max="20" step="1" class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2" [value]="methodWordPlays" (change)="updateMethodRepeat('methodWordPlays', $any($event.target).value)"></label>
+                    <label class="block"><span class="text-sm font-bold">Letter plays</span><input type="number" min="1" max="20" step="1" class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2" [value]="methodLetterPlays" (change)="updateMethodRepeat('methodLetterPlays', $any($event.target).value)"></label>
+                    <label class="block"><span class="text-sm font-bold">Phase passes</span><input type="number" min="1" max="20" step="1" class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2" [value]="methodPhasePasses" (change)="updateMethodRepeat('methodPhasePasses', $any($event.target).value)"></label>
+                </div>
+                <p class="text-xs leading-relaxed text-slate-600">Hear each word {{ methodWordPlays }} times, then each letter {{ methodLetterPlays }} time{{ methodLetterPlays === 1 ? '' : 's' }} at letter speed. Complete all elements {{ methodPhasePasses }} time{{ methodPhasePasses === 1 ? '' : 's' }} before the next phase.</p>
+                <label class="block"><span class="text-sm font-bold">Tone · {{ tone }} Hz</span><input aria-label="Method tone frequency" class="mt-2 w-full accent-orange-500" type="range" min="350" max="900" step="25" [value]="tone" (input)="updateNumber('tone', $any($event.target).value)"></label>
+            </section>
+            <ng-container *ngIf="!methodActive">
             <div class="grid gap-2 rounded-xl bg-slate-100 p-2 sm:gap-3 sm:p-3">
                 <label class="block">
                     <span class="text-xs font-black uppercase tracking-wider text-slate-500">Training goal</span>
@@ -196,26 +220,67 @@
                 </div>
                 <button type="button" class="mx-4 mt-4 rounded-full bg-slate-950 px-5 py-2 text-sm font-black text-white" (click)="saveProfile()">{{ profileSaved ? 'Saved' : 'Save station' }}</button>
             </details>
+            </ng-container>
         </aside>
 
         <section class="grid min-w-0 items-start gap-4 lg:gap-6" [ngClass]="activeWorkspace === 'practice' ? 'lg:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)]' : 'grid-cols-1'">
             <div *ngIf="activeWorkspace === 'practice'" class="min-w-0 rounded-2xl bg-slate-950 p-4 text-white shadow-xl sm:rounded-3xl sm:p-7">
-                <div *ngIf="exerciseContext" class="mb-4 rounded-xl border border-orange-400/30 bg-orange-400/10 px-4 py-3">
+                <section *ngIf="!exercise || listeningOnly" class="my-4 rounded-xl border border-slate-700 bg-slate-900 p-4" aria-label="Drill content">
+                    <div class="flex items-center justify-between gap-3">
+                        <span class="text-xs font-bold uppercase tracking-widest text-slate-400">{{ listeningOnly ? 'Listening · Content pool' : 'Content pool' }}</span>
+                        <button *ngIf="listeningOnly" type="button" class="min-h-11 rounded-lg px-3 text-sm font-bold text-orange-300 hover:bg-slate-800" [attr.aria-expanded]="!contentTagsHidden" aria-controls="drill-content-tags" (click)="contentTagsHidden = !contentTagsHidden">{{ contentTagsHidden ? 'Show content' : 'Hide content' }}</button>
+                    </div>
+                    <div id="drill-content-tags" [hidden]="contentTagsHidden" class="mt-3">
+                        <div class="flex flex-wrap gap-2">
+                            <span *ngFor="let tag of contentTags; let index = index" class="rounded-lg border px-3 py-2 font-mono text-lg font-bold" [ngClass]="activeTagIndex === index ? 'border-orange-300 bg-orange-500 text-white ring-2 ring-orange-300' : 'border-slate-600 bg-slate-800 text-slate-200'" [attr.aria-current]="activeTagIndex === index ? 'true' : null">{{ tag }}</span>
+                        </div>
+                    </div>
+                </section>
+
+                <div *ngIf="exerciseContext && !methodActive" class="mb-4 rounded-xl border border-orange-400/30 bg-orange-400/10 px-4 py-3">
                     <div class="text-[10px] font-black uppercase tracking-widest text-orange-300">Situation</div>
                     <div class="mt-1 text-sm text-orange-50">{{ exerciseContext }}</div>
                 </div>
 
-                <div *ngIf="!exercise" class="rounded-2xl border border-orange-400/30 bg-slate-900 p-6 text-center">
+                <div *ngIf="!exercise && !methodActive" class="rounded-2xl border border-orange-400/30 bg-slate-900 p-6 text-center">
                     <div class="text-xs font-black uppercase tracking-widest text-orange-300">Ready when you are</div>
                     <div class="mt-2 text-xl font-black">{{ activeContentLabel }} · {{ activeExerciseFormatLabel }}</div>
-                    <div class="mt-1 text-sm text-slate-400">{{ wpm }}/{{ farnsworthWpm }} WPM · {{ audioEffect }} · {{ sessionLengthLabel }}</div>
+                    <div class="mt-1 text-sm text-slate-400">{{ practiceSpeedLabel }} · {{ methodActive ? 'clean' : audioEffect }} · {{ sessionLengthLabel }}</div>
                     <div class="mt-5 flex flex-wrap justify-center gap-2">
-                        <button type="button" class="min-h-12 rounded-xl bg-orange-500 px-6 py-3 font-black text-white hover:bg-orange-400" (click)="startExercise()">Start copying</button>
-                        <button type="button" class="min-h-12 rounded-xl bg-slate-700 px-6 py-3 font-black text-white hover:bg-slate-600" (click)="startExercise(true)">Start listening</button>
+                        <button *ngIf="!methodActive" type="button" class="min-h-12 rounded-xl bg-orange-500 px-6 py-3 font-black text-white hover:bg-orange-400" (click)="startExercise()">Start copying</button>
+                        <button type="button" class="min-h-12 rounded-xl bg-slate-700 px-6 py-3 font-black text-white hover:bg-slate-600" (click)="startExercise(true)">{{ methodActive ? 'Start phase' : 'Start listening' }}</button>
                     </div>
                 </div>
 
-                <div *ngIf="exercise" class="sticky top-2 z-20 flex flex-wrap gap-2 rounded-2xl bg-slate-950/95 p-2 shadow-xl backdrop-blur sm:static sm:p-0 sm:shadow-none">
+                <section *ngIf="methodActive" class="my-4" aria-label="Method playback">
+                    <div class="flex items-center gap-2" role="group" aria-label="Playback controls">
+                        <button type="button" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-white hover:bg-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-300 disabled:opacity-30" aria-label="Previous element" title="Previous element" [disabled]="!exercise || !canPreviousMethodElement" (click)="previousMethodElement()"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5v14M19 5 8 12l11 7z"/></svg></button>
+                        <button type="button" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-white hover:bg-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-300 disabled:opacity-30" aria-label="Replay element" title="Replay element" [disabled]="!exercise" (click)="replayMethodElement()"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10a9 9 0 1 1 2 8M3 4v6h6"/></svg></button>
+                        <button type="button" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-white hover:bg-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-300 disabled:opacity-30" [attr.aria-label]="isPlaying ? 'Pause' : isPaused ? 'Resume' : 'Play'" [attr.title]="isPlaying ? 'Pause' : isPaused ? 'Resume' : 'Play'"  [disabled]="false" (click)="exercise ? (isPlaying ? pause() : play()) : startExercise(true)"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path *ngIf="!isPlaying" d="m8 5 11 7-11 7z"/><path *ngIf="isPlaying" d="M8 5v14M16 5v14"/></svg></button>
+                        <button type="button" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-white hover:bg-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-300 disabled:opacity-30" aria-label="Stop" title="Stop" [disabled]="!exercise" (click)="stop()"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="1"/></svg></button>
+                        <button type="button" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-white hover:bg-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-300 disabled:opacity-30" aria-label="Next element" title="Next element" [disabled]="!exercise || methodComplete" (click)="newExercise()"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 5 11 7-11 7zM19 5v14"/></svg></button>
+                        <button type="button" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-white hover:bg-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-300 disabled:opacity-30" aria-label="Restart phase" title="Restart phase" [disabled]="false" (click)="repeatMethodPhase()"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10a9 9 0 1 1 2 8M3 4v6h6M10 8v8M14 8v8"/></svg></button>
+                    </div>
+                </section>
+                <section *ngIf="methodActive" class="my-4" aria-label="Playback timeline">
+                    <label class="mb-3 flex min-h-11 items-center gap-2 text-sm font-semibold">
+                        <input type="checkbox" class="h-4 w-4 accent-orange-500" [checked]="methodVoice.provideInstruction" (change)="toggleMethodVoice('provideInstruction', $any($event.target).checked)">
+                        Provide Instruction
+                    </label>
+                    <ol class="flex items-center gap-1 overflow-x-auto pb-2" aria-label="Playback sequence">
+                        <li *ngFor="let part of methodTimelineParts; let first = first" class="flex shrink-0 items-center gap-1">
+                            <span *ngIf="!first" aria-hidden="true" class="text-slate-600">→</span>
+                            <span class="relative flex min-h-11 items-center overflow-hidden whitespace-nowrap rounded-lg border px-2 text-xs font-semibold" [ngClass]="activeMethodTimelinePart === part.id ? 'border-orange-300 bg-orange-500 text-white' : part.voice ? (methodVoice.provideInstruction ? 'border-orange-400/60 bg-orange-950 text-orange-200' : 'border-slate-700 bg-slate-800 text-slate-500') : 'border-slate-600 bg-slate-800 text-slate-200'" [attr.aria-current]="activeMethodTimelinePart === part.id ? 'step' : null" [attr.aria-disabled]="part.voice && !methodVoice.provideInstruction ? 'true' : null">
+                                {{ part.id === 'word' ? 'Word ×' + methodWordPlays : part.id === 'letter' ? 'Letter ×' + methodLetterPlays : part.label }}
+                                <span *ngIf="activeMethodTimelinePart === part.id" class="absolute bottom-0 left-0 h-0.5 bg-white" [style.width.%]="methodStepProgress"></span>
+                            </span>
+                        </li>
+                    </ol>
+                    <p class="mt-1 text-xs text-slate-400">Pauses separate each step · letters repeat for each character</p>
+                    <p *ngIf="methodSpeechMessage" class="mt-2 text-sm text-orange-300" role="alert">{{ methodSpeechMessage }}</p>
+                </section>
+
+                <div *ngIf="exercise && !methodActive" class="sticky top-2 z-20 flex flex-wrap gap-2 rounded-2xl bg-slate-950/95 p-2 shadow-xl backdrop-blur sm:static sm:p-0 sm:shadow-none">
                     <button *ngIf="mode === 'qsoWords'" type="button" class="min-h-12 flex-1 rounded-xl bg-slate-700 px-4 py-3 font-bold hover:bg-slate-600 disabled:opacity-40" [disabled]="wordHistoryIndex <= 0" (click)="previousWord()">Previous word</button>
                     <button type="button" class="min-h-12 flex-1 rounded-xl bg-orange-500 px-5 py-3 font-black text-white hover:bg-orange-400" (click)="newExercise()">
                         {{ mode === 'qsoWords' ? 'Next word' : 'New' }}
@@ -225,7 +290,7 @@
                     </button>
                     <button *ngIf="exercise && (isPlaying || isPaused)" type="button" aria-label="Stop playback" class="min-h-12 rounded-xl border border-slate-600 px-4 text-sm font-bold text-slate-300" (click)="stop()">Stop</button>
                 </div>
-                <details *ngIf="exercise" class="mt-2 text-right text-xs text-slate-400"><summary class="cursor-pointer font-bold hover:text-white">Keyboard help</summary><div class="mt-1">Space: play/pause · N: new exercise · <span *ngIf="!listeningOnly">Ctrl/⌘ + Enter: check</span></div></details>
+                <details *ngIf="exercise && !methodActive" class="mt-2 text-right text-xs text-slate-400"><summary class="cursor-pointer font-bold hover:text-white">Keyboard help</summary><div class="mt-1">Space: play/pause · N: new exercise · <span *ngIf="!listeningOnly">Ctrl/⌘ + Enter: check</span></div></details>
 
                 <div *ngIf="exercise && mode !== 'qsoWords'" class="mt-4" aria-live="polite">
                     <div class="flex justify-between text-xs font-bold text-slate-400"><span>{{ playbackStatus }}</span><span>{{ secondsElapsed }}s / {{ playbackDuration | number:'1.0-0' }}s</span></div>
@@ -242,17 +307,6 @@
                     >
                 </div>
 
-                <section *ngIf="!exercise || listeningOnly" class="my-4 rounded-xl border border-slate-700 bg-slate-900 p-4" aria-label="Drill content">
-                    <div class="flex items-center justify-between gap-3">
-                        <span class="text-xs font-bold uppercase tracking-widest text-slate-400">{{ listeningOnly ? 'Listening · Content pool' : 'Content pool' }}</span>
-                        <button *ngIf="listeningOnly" type="button" class="min-h-11 rounded-lg px-3 text-sm font-bold text-orange-300 hover:bg-slate-800" [attr.aria-expanded]="!contentTagsHidden" aria-controls="drill-content-tags" (click)="contentTagsHidden = !contentTagsHidden">{{ contentTagsHidden ? 'Show content' : 'Hide content' }}</button>
-                    </div>
-                    <div id="drill-content-tags" [hidden]="contentTagsHidden" class="mt-3">
-                        <div class="flex flex-wrap gap-2">
-                            <span *ngFor="let tag of contentTags; let index = index" class="rounded-lg border px-3 py-2 font-mono text-lg font-bold" [ngClass]="activeTagIndex === index ? 'border-orange-300 bg-orange-500 text-white ring-2 ring-orange-300' : 'border-slate-600 bg-slate-800 text-slate-200'" [attr.aria-current]="activeTagIndex === index ? 'true' : null">{{ tag }}</span>
-                        </div>
-                    </div>
-                </section>
 
                 <label *ngIf="exercise && !listeningOnly" class="mt-5 block">
                     <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Your copy</span>
@@ -341,7 +395,7 @@
                     </div>
                 </details>
 
-                <div *ngIf="activeWorkspace === 'practice'" class="rounded-2xl bg-white p-5 shadow-xl sm:rounded-3xl sm:p-6">
+                <div *ngIf="activeWorkspace === 'practice' && !methodActive" class="rounded-2xl bg-white p-5 shadow-xl sm:rounded-3xl sm:p-6">
                     <div class="flex items-center justify-between gap-3"><div class="text-sm font-black uppercase tracking-widest text-slate-500">Session</div><div class="text-xs font-bold text-slate-400">{{ sessionProgressLabel }}</div></div>
                     <div class="mt-3 h-2 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-orange-500 transition-[width] duration-300 motion-reduce:transition-none" [style.width.%]="sessionProgressPercent"></div></div>
                     <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -471,7 +525,7 @@
                     </div>
                 </details>
 
-                <details *ngIf="activeWorkspace === 'practice' && history.length" class="rounded-2xl bg-white shadow-xl sm:rounded-3xl">
+                <details *ngIf="activeWorkspace === 'practice' && !methodActive && history.length" class="rounded-2xl bg-white shadow-xl sm:rounded-3xl">
                     <summary class="cursor-pointer list-none p-5 sm:p-6"><span class="text-sm font-black uppercase tracking-widest text-slate-500">Recent copy</span></summary>
                     <div class="space-y-3 border-t border-slate-200 px-5 pb-5 pt-4">
                         <div *ngFor="let result of history" class="rounded-xl border p-3" [class.border-emerald-300]="result.correct" [class.bg-emerald-50]="result.correct" [class.border-slate-200]="!result.correct">
@@ -482,8 +536,19 @@
                 </details>
 
                 <div *ngIf="activeWorkspace === 'practice'" class="rounded-2xl bg-orange-100 p-5 text-sm shadow-xl sm:rounded-3xl sm:p-6">
-                    <h2 class="font-black">Copying tip</h2>
-                    <p class="mt-2 text-slate-700">Write the character you hear and move on. A blank costs one character; chasing it can cost the next five.</p>
+                    <h2 class="font-black">{{ methodActive ? 'Listening tip' : 'Copying tip' }}</h2>
+                    <p *ngIf="!methodActive" class="mt-2 text-slate-700">Write the character you hear and move on. A blank costs one character; chasing it can cost the next five.</p>
+                    <p *ngIf="methodActive" class="mt-2 text-slate-700">Listen to each word’s rhythm as a whole. Use the slower letters to hear its details, then connect the sound with its meaning.</p>
+                    <section *ngIf="mode === 'qsoWords'" class="mt-4 border-t border-orange-200 pt-4" aria-label="QSO word pool definitions">
+                        <h3 class="font-black">QSO word definitions</h3>
+                        <p class="mt-1 text-xs text-slate-600">{{ poolQsoDefinitions.length }} terms in the selected pool, in alphabetical order.</p>
+                        <dl class="mt-3 max-h-96 space-y-3 overflow-y-auto pr-2" tabindex="0" aria-label="Definitions for the selected QSO word pool">
+                            <div *ngFor="let item of poolQsoDefinitions">
+                                <dt class="font-mono font-black text-slate-950">{{ item.token }}</dt>
+                                <dd class="mt-0.5 text-xs leading-relaxed text-slate-700">{{ item.meaning }}</dd>
+                            </div>
+                        </dl>
+                    </section>
                 </div>
             </aside>
         </section>
