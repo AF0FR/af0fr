@@ -6,10 +6,9 @@ import { CwWorkspaceView, TrainerHeader } from './trainer-header/trainer-header.
 import { CwCheatSheetComponent } from './cw-cheat-sheet/cw-cheat-sheet.component';
 import { standardCq, standardExchange } from './cw-protocol';
 
-type PracticeMode = 'letters' | 'numbers' | 'mixed' | 'callsigns' | 'qsoWords' | 'qso';
+type PracticeMode = 'letters' | 'numbers' | 'lettersNumbers' | 'mixed' | 'callsigns' | 'qsoWords' | 'qso';
 type TrainingGoal = 'learn' | 'speed' | 'accuracy' | 'weaknesses' | 'qso';
 type ExerciseFormat = 'groups' | 'continuous' | 'instant' | 'guidedQso' | 'simulatedQso';
-type SessionPreset = 'warmup' | 'weaknesses' | 'callsigns' | 'charactersNumbers' | 'koch' | 'onAir';
 type WorkspaceView = CwWorkspaceView;
 type ToastTone = 'success' | 'info' | 'error';
 type SettingsSection = 'advanced' | 'content' | 'speed' | 'audio' | 'timing' | 'scoring';
@@ -68,7 +67,6 @@ interface CwUiState {
     trainingGoal: TrainingGoal;
     mode: PracticeMode;
     exerciseFormat: ExerciseFormat;
-    activePreset: SessionPreset | null;
     wpm: number;
     farnsworthWpm: number;
     audioEffect: AudioEffect;
@@ -233,8 +231,6 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     mode: PracticeMode = 'letters';
     trainingGoal: TrainingGoal = 'accuracy';
     exerciseFormat: ExerciseFormat = 'groups';
-    activePreset: SessionPreset | null = null;
-    presetModified = false;
     activeWorkspace: WorkspaceView = 'practice';
     mobileSetupOpen = false;
     showAllMetricConditions = false;
@@ -246,8 +242,8 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     qsoStage: QsoStage = 'mixed';
     wordCategory: WordCategory = 'all';
     audioEffect: AudioEffect = 'clean';
-    wpm = 17;
-    farnsworthWpm = 7;
+    wpm = 20;
+    farnsworthWpm = 10;
     tone = 550;
     groupSize = 5;
     groupCount = 5;
@@ -273,6 +269,59 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     isPlaying = false;
     isPaused = false;
     hasChecked = false;
+    private wordHistory: GeneratedExercise[] = [];
+    wordHistoryIndex = -1;
+    private advanceTimer: number | null = null;
+    listeningOnly = false;
+    contentTagsHidden = false;
+    previewExercise: GeneratedExercise = { text: '', context: '' };
+    private baseTagTimings: { index: number; start: number; end: number }[] = [];
+    private tagTimings: { index: number; start: number; end: number }[] = [];
+
+    private get usesWordTags(): boolean {
+        return this.mode === 'qsoWords' || this.mode === 'qso'
+            || (this.mode === 'letters' && this.letterDrill === 'combinations' && !this.instantCharacters);
+    }
+
+    private letterPool(): string {
+        if (this.letterDrill === 'koch') return this.kochSequence.slice(0, this.kochLevel);
+        if (this.letterDrill === 'trouble') return this.troublePair;
+        if (this.letterDrill === 'confusions') return this.confusionPool(true);
+        if (this.letterDrill === 'custom') return this.customCharacters.replace(/[^A-Z]/g, '') || 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        if (this.letterDrill === 'vowels') return 'AEIOU';
+        if (this.letterDrill === 'consonants') return 'BCDFGHJKLMNPQRSTVWXYZ';
+        return 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    }
+
+    get contentTags(): string[] {
+        if (this.mode === 'qsoWords') return [...new Set(this.wordCategory === 'all' ? Object.values(this.vocabulary).flat() : this.vocabulary[this.wordCategory])].sort();
+        if (this.mode === 'letters' && this.usesWordTags) return [...new Set(this.commonCombinations)].sort();
+        if (this.mode === 'qso') return [...new Set((this.exercise || this.previewExercise.text).split(/\s+/).filter(Boolean))].sort();
+        let pool = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        if (this.mode === 'letters') pool = this.letterPool();
+        if (this.mode === 'numbers') {
+            pool = !this.instantCharacters && this.numberDrill === 'rst' ? '123456789' : '0123456789';
+            if (!this.instantCharacters) {
+                if (this.numberDrill === 'dates') pool += '/';
+                if (this.numberDrill === 'times') pool += ':';
+                if (this.numberDrill === 'frequencies') pool += '.';
+                if (this.numberDrill === 'coordinates') pool += '.NW';
+            }
+        }
+        return [...new Set(pool.split(''))].sort();
+    }
+
+    get activeTagIndex(): number {
+        if (!this.isPlaying && !this.isPaused) return -1;
+        return this.tagTimings.find((tag) => this.playbackPosition >= tag.start && this.playbackPosition < tag.end)?.index ?? -1;
+    }
+
+    startExercise(listeningOnly = false): void {
+        this.listeningOnly = listeningOnly;
+        this.contentTagsHidden = false;
+        this.newExercise();
+    }
+
     playbackPosition = 0;
     playbackDuration = 0;
     correctCharacters = 0;
@@ -310,10 +359,9 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     readonly modes: { value: PracticeMode; label: string; description: string }[] = [
         { value: 'letters', label: 'Letters', description: 'A–Z character groups' },
         { value: 'numbers', label: 'Numbers', description: '0–9 number groups' },
-        { value: 'mixed', label: 'Mixed', description: 'Letters, numbers, / and ?' },
+        { value: 'lettersNumbers', label: 'Letters + Numbers', description: 'A–Z and 0–9 character groups' },
         { value: 'callsigns', label: 'Callsigns', description: 'Realistic amateur call patterns' },
         { value: 'qsoWords', label: 'QSO Words', description: 'Prosigns, Q signals, and abbreviations' },
-        { value: 'qso', label: 'QSO', description: 'Guided LICW-style on-air traffic' },
     ];
 
     readonly trainingGoals: { value: TrainingGoal; label: string; description: string }[] = [
@@ -321,7 +369,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         { value: 'speed', label: 'Build speed', description: 'Increase sustained copy speed.' },
         { value: 'accuracy', label: 'Improve accuracy', description: 'Practice clean, consistent copy.' },
         { value: 'weaknesses', label: 'Fix weaknesses', description: 'Target missed and confused characters.' },
-        { value: 'qso', label: 'Prepare for QSOs', description: 'Practice realistic exchanges and protocol.' },
+        { value: 'qso', label: 'Prepare for QSOs', description: 'Practice QSO words and operating signals.' },
     ];
 
     readonly exerciseFormats: { value: ExerciseFormat; label: string }[] = [
@@ -330,15 +378,6 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         { value: 'instant', label: 'Instant characters' },
         { value: 'guidedQso', label: 'Guided QSO' },
         { value: 'simulatedQso', label: 'Simulated contact' },
-    ];
-
-    readonly sessionPresets: { value: SessionPreset; label: string; description: string }[] = [
-        { value: 'charactersNumbers', label: 'Characters + Numbers', description: 'A–Z and 0–9 only' },
-        { value: 'warmup', label: 'Daily warm-up', description: 'Mixed copy at a comfortable pace' },
-        { value: 'weaknesses', label: 'Weak-character repair', description: 'Target recent misses and confusions' },
-        { value: 'callsigns', label: 'Callsign sprint', description: 'Fast callsign recognition' },
-        { value: 'koch', label: 'Koch progression', description: 'Start with two characters and add one each exercise' },
-        { value: 'onAir', label: 'On-air simulation', description: 'Full exchange with noise and QSB' },
     ];
 
     readonly letterDrills: { value: LetterDrill; label: string }[] = [
@@ -389,7 +428,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     readonly wordCategories: { value: WordCategory; label: string }[] = [
         { value: 'all', label: 'All vocabulary' },
         { value: 'core', label: 'Core exchange' },
-        { value: 'prosigns', label: 'Prosigns' },
+        { value: 'prosigns', label: 'Prosigns & operating signals' },
         { value: 'qsignals', label: 'Q signals' },
         { value: 'abbreviations', label: 'Abbreviations' },
         { value: 'recovery', label: 'Recovery' },
@@ -397,11 +436,20 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     ];
 
     readonly vocabulary: Record<Exclude<WordCategory, 'all'>, readonly string[]> = {
-        core: ['CQ', 'DE', 'K', 'BK', 'GM', 'GA', 'GE', 'ES', 'TNX', 'FER', 'CALL', 'RPRT', 'RST', 'QTH', 'NAME', 'OP', 'HW?', 'FB', 'CPY', 'INFO', '73', 'TU'],
-        prosigns: ['AR', 'AS', 'BT', 'KN', 'SK'],
-        qsignals: ['QRL?', 'QRL', 'QRS', 'QRQ', 'QSL', 'QRZ?', 'QTH', 'QSO'],
-        abbreviations: ['AGN', 'ANT', 'CPI', 'CPY', 'CUAGN', 'CUL', 'ES', 'FB', 'FER', 'HPE', 'HR', 'NR', 'PSE', 'PWR', 'RPRT', 'RIG', 'SRI', 'TEMP', 'TNX', 'WX', 'YRS'],
-        recovery: ['AGN?', 'CALL?', 'NAME?', 'QTH?', 'RST?', 'QRS', 'PSE', 'SRI', 'NIL', 'AGN', 'QRZ?'],
+        core: ['CQ', 'DE', 'K', 'BK', 'GM', 'GA', 'GE', 'ES', 'TNX', 'FER', 'CALL', 'RPT', 'RST', 'QTH', 'NAME', 'OP', 'FB', 'CPY', 'INFO', '73', 'TU'],
+        prosigns: ['AR', 'AS', 'BT', 'BK', 'K', 'KN', 'SK', 'CL'],
+        qsignals: ['QRL', 'QRS', 'QRQ', 'QSL', 'QTH', 'QSO'],
+        abbreviations: [
+            '73', '88', 'ABT', 'ADR', 'AGN', 'ANT', 'ARND', 'B4', 'BK', 'BTR', 'BUG', 'C', 'CFM', 'CK', 'CL', 'CLG', 'CPI', 'CPY',
+            'CQ', 'CS', 'CTL', 'CUAGN', 'CUD', 'CUL', 'CUZ', 'CW', 'CX', 'DE', 'DN',
+            'DR', 'DX', 'EMRG', 'ENUF', 'ES', 'FB', 'FER', 'FM', 'FREQ', 'FWD',
+            'GA', 'GE', 'GG', 'GM', 'GN', 'GND', 'GUD', 'HI', 'HPE', 'HR', 'HV',
+            'HW', 'KN', 'LID', 'MNI', 'MSG', 'N', 'NIL', 'NR', 'NW',
+            'NX', 'OB', 'OC', 'OM', 'OP', 'OT', 'PSE', 'PWR', 'PX',
+            'R', 'RCVR', 'RFI', 'RIG', 'RPT', 'RST', 'RX', 'SED', 'SEZ', 'SIG', 'SIGS', 'SK', 'SKED', 'SN', 'SRI', 'SSB',
+            'STN', 'T', 'TEMP', 'TFC', 'TKS', 'TMW', 'TNX', 'TT', 'TU', 'TX', 'U', 'UR', 'URS', 'VY', 'W', 'WC', 'WDS', 'WID', 'WKD',
+            'WKG', 'WL', 'WUD', 'WX', 'XCVR', 'XMTR', 'XYL', 'YF', 'YL', 'YRS', ],
+        recovery: ['QRS', 'PSE', 'SRI', 'NIL', 'AGN', ],
         ragchew: ['AGE', 'ANT', 'BEEN', 'CLUB', 'HAM', 'KEY', 'PADDLE', 'POTA', 'QRP', 'RIG', 'SKCC', 'SOTA', 'TEMP', 'W', 'WX', 'YRS'],
     };
 
@@ -437,13 +485,13 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         FB: { meaning: 'Fine business; good or excellent', kind: 'Abbreviation' },
         FER: { meaning: 'For', kind: 'Abbreviation' },
         FT: { meaning: 'Feet', kind: 'Abbreviation' },
-        GA: { meaning: 'Good afternoon', kind: 'Abbreviation' },
+        GA: { meaning: 'Good afternoon or go ahead, depending on context', kind: 'Abbreviation' },
         GE: { meaning: 'Good evening', kind: 'Abbreviation' },
         GM: { meaning: 'Good morning', kind: 'Abbreviation' },
         HAM: { meaning: 'Amateur radio operator', kind: 'Operating term' },
         HPE: { meaning: 'Hope', kind: 'Abbreviation' },
         HP: { meaning: 'Hope', kind: 'Abbreviation' },
-        HR: { meaning: 'Here', kind: 'Abbreviation' },
+        HR: { meaning: 'Here or hear', kind: 'Abbreviation' },
         'HW?': { meaning: 'How do you copy me?', kind: 'Abbreviation' },
         K: { meaning: 'Over; invitation for any station to transmit', kind: 'Operating term' },
         INFO: { meaning: 'Information', kind: 'Abbreviation' },
@@ -470,9 +518,8 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         QSO: { meaning: 'A radio contact or conversation', kind: 'Q signal' },
         QTH: { meaning: 'Station location', kind: 'Q signal' },
         'QTH?': { meaning: 'What is your location, or please repeat your location?', kind: 'Q signal' },
-        R: { meaning: 'Received correctly', kind: 'Operating term' },
+        R: { meaning: 'Are; received correctly; decimal point, depending on context', kind: 'Operating term' },
         RIG: { meaning: 'Radio equipment', kind: 'Operating term' },
-        RPRT: { meaning: 'Report', kind: 'Abbreviation' },
         RR: { meaning: 'Roger roger; fully received and understood', kind: 'Abbreviation' },
         RST: { meaning: 'Readability, signal strength, and tone report', kind: 'Operating term' },
         'RST?': { meaning: 'Please repeat the signal report', kind: 'Operating term' },
@@ -489,6 +536,80 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         WX: { meaning: 'Weather', kind: 'Abbreviation' },
         YL: { meaning: 'Young lady; traditional term for a female operator', kind: 'Abbreviation' },
         YRS: { meaning: 'Years', kind: 'Abbreviation' },
+        'ABT': { meaning: "About", kind: 'Abbreviation' },
+        'ADR': { meaning: "Address", kind: 'Abbreviation' },
+        'ARND': { meaning: "Around", kind: 'Abbreviation' },
+        'BTR': { meaning: "Better", kind: 'Abbreviation' },
+        'BUG': { meaning: "Semiautomatic mechanical key", kind: 'Abbreviation' },
+        'B4': { meaning: "Before", kind: 'Abbreviation' },
+        'C': { meaning: "Yes; correct", kind: 'Abbreviation' },
+        'CFM': { meaning: "Confirm", kind: 'Abbreviation' },
+        'CK': { meaning: "Check", kind: 'Abbreviation' },
+        'CL': { meaning: "Closing the station; no further calls expected", kind: 'Abbreviation' },
+        'CLG': { meaning: "Calling", kind: 'Abbreviation' },
+        'CS': { meaning: "Callsign", kind: 'Abbreviation' },
+        'CTL': { meaning: "Control", kind: 'Abbreviation' },
+        'CUD': { meaning: "Could", kind: 'Abbreviation' },
+        'CUZ': { meaning: "Because", kind: 'Abbreviation' },
+        'CW': { meaning: "Continuous wave; Morse radiotelegraphy", kind: 'Abbreviation' },
+        'CX': { meaning: "Conditions", kind: 'Abbreviation' },
+        'DN': { meaning: "Down", kind: 'Abbreviation' },
+        'DR': { meaning: "Dear", kind: 'Abbreviation' },
+        'DX': { meaning: "Distance; distant or foreign station", kind: 'Abbreviation' },
+        'EMRG': { meaning: "Emergency", kind: 'Abbreviation' },
+        'ENUF': { meaning: "Enough", kind: 'Abbreviation' },
+        'FM': { meaning: "From", kind: 'Abbreviation' },
+        'FREQ': { meaning: "Frequency", kind: 'Abbreviation' },
+        'FWD': { meaning: "Forward", kind: 'Abbreviation' },
+        'GG': { meaning: "Going", kind: 'Abbreviation' },
+        'GN': { meaning: "Good night", kind: 'Abbreviation' },
+        'GND': { meaning: "Ground", kind: 'Abbreviation' },
+        'GUD': { meaning: "Good", kind: 'Abbreviation' },
+        'HI': { meaning: "Laughter", kind: 'Abbreviation' },
+        'HV': { meaning: "Have", kind: 'Abbreviation' },
+        'HW': { meaning: "How", kind: 'Abbreviation' },
+        'LID': { meaning: "Poor operator", kind: 'Abbreviation' },
+        'MNI': { meaning: "Many", kind: 'Abbreviation' },
+        'MSG': { meaning: "Message", kind: 'Abbreviation' },
+        'N': { meaning: "No; nine", kind: 'Abbreviation' },
+        'NW': { meaning: "Now", kind: 'Abbreviation' },
+        'NX': { meaning: "Noise; noisy", kind: 'Abbreviation' },
+        'OB': { meaning: "Old boy", kind: 'Abbreviation' },
+        'OC': { meaning: "Old chap", kind: 'Abbreviation' },
+        'OT': { meaning: "Old timer", kind: 'Abbreviation' },
+        'PX': { meaning: "Prefix", kind: 'Abbreviation' },
+        'RCVR': { meaning: "Receiver", kind: 'Abbreviation' },
+        'RFI': { meaning: "Radio frequency interference", kind: 'Abbreviation' },
+        'RPT': { meaning: "Repeat or report, depending on context", kind: 'Abbreviation' },
+        'RX': { meaning: "Receiver", kind: 'Abbreviation' },
+        'SED': { meaning: "Said", kind: 'Abbreviation' },
+        'SEZ': { meaning: "Says", kind: 'Abbreviation' },
+        'SIG': { meaning: "Signal or signature", kind: 'Abbreviation' },
+        'SIGS': { meaning: "Signals", kind: 'Abbreviation' },
+        'SKED': { meaning: "Schedule", kind: 'Abbreviation' },
+        'SN': { meaning: "Soon", kind: 'Abbreviation' },
+        'SSB': { meaning: "Single sideband", kind: 'Abbreviation' },
+        'STN': { meaning: "Station", kind: 'Abbreviation' },
+        'T': { meaning: "Zero", kind: 'Abbreviation' },
+        'TFC': { meaning: "Traffic", kind: 'Abbreviation' },
+        'TMW': { meaning: "Tomorrow", kind: 'Abbreviation' },
+        'TT': { meaning: "That", kind: 'Abbreviation' },
+        'TX': { meaning: "Transmit; transmitter", kind: 'Abbreviation' },
+        'U': { meaning: "You", kind: 'Abbreviation' },
+        'URS': { meaning: "Yours", kind: 'Abbreviation' },
+        'VY': { meaning: "Very", kind: 'Abbreviation' },
+        'WC': { meaning: "Wilco; will comply", kind: 'Abbreviation' },
+        'WDS': { meaning: "Words", kind: 'Abbreviation' },
+        'WID': { meaning: "With", kind: 'Abbreviation' },
+        'WKD': { meaning: "Worked", kind: 'Abbreviation' },
+        'WKG': { meaning: "Working", kind: 'Abbreviation' },
+        'WL': { meaning: "Will", kind: 'Abbreviation' },
+        'WUD': { meaning: "Would", kind: 'Abbreviation' },
+        'XCVR': { meaning: "Transceiver", kind: 'Abbreviation' },
+        'XMTR': { meaning: "Transmitter", kind: 'Abbreviation' },
+        'XYL': { meaning: "Wife", kind: 'Abbreviation' },
+        'YF': { meaning: "Wife", kind: 'Abbreviation' },
+        '88': { meaning: "Love and kisses", kind: 'Abbreviation' },
     };
 
     private audioContext: AudioContext | null = null;
@@ -502,7 +623,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     private practiceAttempts: CwPracticeAttempt[] = [];
     private exercisePlayCount = 0;
     private sessionId = this.createSessionId();
-    private readonly uiStateVersion = 2;
+    private readonly uiStateVersion = 3;
 
     private readonly morse: Record<string, string> = {
         A: '.-', B: '-...', C: '-.-.', D: '-..', E: '.', F: '..-.', G: '--.',
@@ -519,6 +640,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
 
     constructor(private http: HttpClient) {
         this.initializeOperatorState();
+        this.previewExercise = this.generateExercise();
         this.pendingMetricCount = this.readPendingMetrics().length;
     }
 
@@ -583,7 +705,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     get isBasicMode(): boolean {
-        return this.mode === 'letters' || this.mode === 'numbers' || this.mode === 'mixed';
+        return this.mode === 'letters' || this.mode === 'numbers' || this.mode === 'lettersNumbers' || this.mode === 'mixed';
     }
 
     get activeTrainingGoalDescription(): string {
@@ -606,16 +728,12 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         return this.exerciseFormats.find((format) => format.value === this.exerciseFormat)?.label ?? this.exerciseFormat;
     }
 
-    get activePresetLabel(): string {
-        if (!this.activePreset) return 'Custom session';
-        return this.sessionPresets.find((preset) => preset.value === this.activePreset)?.label ?? 'Custom session';
-    }
-
     get sessionLengthLabel(): string {
+        if (this.mode === 'qsoWords') return 'Continuous words';
         if (this.exerciseFormat === 'instant') return 'One character at a time';
         if (this.exerciseFormat === 'continuous') return `${this.timedMinutes}-minute stream`;
         if (this.mode === 'qso') return this.qsoStages.find((stage) => stage.value === this.qsoStage)?.label ?? 'QSO exchange';
-        return `${this.groupCount} ${this.mode === 'qsoWords' ? 'words' : 'groups'}`;
+        return `${this.groupCount} groups`;
     }
 
     get visibleMetricTrends(): CwTrendSeries[] {
@@ -798,11 +916,12 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         this.expectedMarks = [];
         this.copyMarks = [];
         this.playbackPosition = 0;
-        window.setTimeout(() => this.copyInput?.nativeElement.focus(), 0);
+        if (!this.listeningOnly) window.setTimeout(() => this.copyInput?.nativeElement.focus(), 0);
         this.play();
     }
 
     get availableExerciseFormats(): { value: ExerciseFormat; label: string }[] {
+        if (this.mode === 'qsoWords') return this.exerciseFormats.filter((format) => format.value === 'continuous');
         if (this.mode === 'qso') return this.exerciseFormats.filter((format) => format.value === 'guidedQso' || format.value === 'simulatedQso');
         if (this.isBasicMode) return this.exerciseFormats.filter((format) => format.value === 'groups' || format.value === 'continuous' || format.value === 'instant');
         return this.exerciseFormats.filter((format) => format.value === 'groups');
@@ -866,7 +985,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     selectTrainingGoal(goal: string): void {
-        this.markPresetModified();
+        this.scheduleUiStateSave();
         this.trainingGoal = goal as TrainingGoal;
         if (this.trainingGoal === 'learn') {
             this.mode = 'letters';
@@ -876,14 +995,14 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
             this.applyExerciseFormat('groups');
             this.audioEffect = 'clean';
         } else if (this.trainingGoal === 'speed') {
-            if (!this.isBasicMode) this.mode = 'mixed';
+            if (!this.isBasicMode) this.mode = 'lettersNumbers';
             this.adaptiveCharacters = false;
             this.adaptiveSpeed = true;
             this.applyExerciseFormat('continuous');
         } else if (this.trainingGoal === 'accuracy') {
             this.adaptiveCharacters = false;
             this.adaptiveSpeed = false;
-            if (this.mode === 'qso') this.mode = 'mixed';
+            if (this.mode === 'qso') this.mode = 'lettersNumbers';
             this.applyExerciseFormat('groups');
             this.audioEffect = 'clean';
         } else if (this.trainingGoal === 'weaknesses') {
@@ -894,110 +1013,48 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
             if (this.mode === 'mixed') this.mixedDrill = 'confusions';
             this.applyExerciseFormat('groups');
         } else {
-            this.mode = 'qso';
+            this.mode = 'qsoWords';
             this.adaptiveCharacters = false;
             this.adaptiveSpeed = false;
-            this.applyExerciseFormat('guidedQso');
+            this.applyExerciseFormat('groups');
         }
         this.resetExercise();
         this.persistUiState();
     }
 
     selectContent(mode: PracticeMode): void {
-        this.markPresetModified();
-        this.mode = mode;
-        if (mode === 'qso') {
-            if (this.exerciseFormat !== 'guidedQso' && this.exerciseFormat !== 'simulatedQso') this.applyExerciseFormat('guidedQso');
-        } else if (!this.availableExerciseFormats.some((format) => format.value === this.exerciseFormat)) {
+        this.scheduleUiStateSave();
+        this.mode = mode === 'mixed' ? 'lettersNumbers' : mode === 'qso' ? 'qsoWords' : mode;
+        if (this.mode === 'qsoWords' || !this.availableExerciseFormats.some((format) => format.value === this.exerciseFormat)) {
             this.applyExerciseFormat('groups');
         }
+        if (this.mode !== 'qsoWords') this.repeatCount = Math.min(3, this.repeatCount);
+        if (this.mode !== 'qsoWords' && this.exerciseFormat === 'continuous' && !this.timedMinutes) this.applyExerciseFormat('continuous');
         if (mode === 'letters' && this.letterDrill === 'custom' && !/[A-Z]/.test(this.customCharacters)) this.letterDrill = 'random';
         this.resetExercise();
     }
 
     selectExerciseFormat(format: string): void {
-        this.markPresetModified();
+        this.scheduleUiStateSave();
         this.applyExerciseFormat(format as ExerciseFormat);
         this.resetExercise();
     }
 
-    applySessionPreset(preset: SessionPreset): void {
-        this.repeatCount = 1;
-        this.strictSpacing = true;
-        this.countdownSeconds = 0;
-        this.revealMode = 'check';
-        this.adaptiveCharacters = false;
-        this.adaptiveSpeed = false;
-        this.audioEffect = 'clean';
-        if (preset === 'warmup') {
-            this.trainingGoal = 'accuracy';
-            this.mode = 'mixed';
-            this.mixedDrill = 'radio';
-            this.wpm = 17;
-            this.farnsworthWpm = 7;
-            this.groupSize = 5;
-            this.groupCount = 5;
-            this.applyExerciseFormat('groups');
-        } else if (preset === 'weaknesses') {
-            this.trainingGoal = 'weaknesses';
-            this.mode = 'letters';
-            this.letterDrill = 'confusions';
-            this.adaptiveCharacters = true;
-            this.applyExerciseFormat('groups');
-        } else if (preset === 'callsigns') {
-            this.trainingGoal = 'speed';
-            this.mode = 'callsigns';
-            this.wpm = 20;
-            this.farnsworthWpm = 15;
-            this.groupCount = 10;
-            this.applyExerciseFormat('groups');
-        } else if (preset === 'charactersNumbers') {
-            this.trainingGoal = 'accuracy';
-            this.mode = 'mixed';
-            this.mixedDrill = 'custom';
-            this.customCharacters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            this.groupSize = 5;
-            this.groupCount = 5;
-            this.applyExerciseFormat('groups');
-        } else if (preset === 'koch') {
-            this.trainingGoal = 'learn';
-            this.mode = 'letters';
-            this.letterDrill = 'koch';
-            this.kochLevel = 2;
-            this.groupSize = 5;
-            this.groupCount = 5;
-            this.applyExerciseFormat('groups');
-        } else {
-            this.trainingGoal = 'qso';
-            this.mode = 'qso';
-            this.qsoStage = 'complete';
-            this.wpm = 18;
-            this.farnsworthWpm = 12;
-            this.audioEffect = 'light';
-            this.applyExerciseFormat('simulatedQso');
-        }
-        this.activePreset = preset;
-        this.presetModified = false;
-        this.resetExercise();
-        this.persistUiState();
-        this.showToast(`${this.activePresetLabel} applied`, 'success');
-    }
-
     selectQsoStage(stage: string): void {
-        this.markPresetModified();
+        this.scheduleUiStateSave();
         this.qsoStage = stage as QsoStage;
         this.exerciseFormat = this.qsoStage === 'complete' ? 'simulatedQso' : 'guidedQso';
         this.resetExercise();
     }
 
     selectWordCategory(category: string): void {
-        this.markPresetModified();
+        this.scheduleUiStateSave();
         this.wordCategory = category as WordCategory;
         this.resetExercise();
     }
 
     selectDrill(kind: 'letter' | 'number' | 'mixed', value: string): void {
-        this.markPresetModified();
+        this.scheduleUiStateSave();
         if (kind === 'letter') this.letterDrill = value as LetterDrill;
         if (kind === 'number') this.numberDrill = value as NumberDrill;
         if (kind === 'mixed') this.mixedDrill = value as MixedDrill;
@@ -1005,21 +1062,21 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     selectOption(setting: 'troublePair' | 'revealMode', value: string): void {
-        this.markPresetModified();
+        this.scheduleUiStateSave();
         if (setting === 'troublePair') this.troublePair = value;
         else this.revealMode = value as RevealMode;
         this.resetExercise();
     }
 
     updateCustomCharacters(value: string): void {
-        this.markPresetModified();
+        this.scheduleUiStateSave();
         const supported = value.toUpperCase().split('').filter((character) => Boolean(this.morse[character]));
         this.customCharacters = [...new Set(supported)].join('');
         this.resetExercise();
     }
 
     toggleSetting(setting: 'adaptiveCharacters' | 'adaptiveSpeed' | 'instantCharacters' | 'strictSpacing', checked: boolean): void {
-        this.markPresetModified();
+        this.scheduleUiStateSave();
         this[setting] = checked;
         if (setting === 'instantCharacters' && checked) {
             this.timedMinutes = 0;
@@ -1032,7 +1089,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     selectAudioEffect(effect: string): void {
-        this.markPresetModified();
+        this.scheduleUiStateSave();
         this.audioEffect = effect as AudioEffect;
         this.stop();
         if (this.exercise) this.prepareTimeline();
@@ -1041,6 +1098,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     updateProfile(field: keyof StationProfile, value: string): void {
         this.profile = { ...this.profile, [field]: this.normalize(value) };
         this.profileSaved = false;
+        if (!this.exercise) this.previewExercise = this.generateExercise();
     }
 
     saveProfile(): void {
@@ -1057,11 +1115,11 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     updateNumber(setting: 'wpm' | 'farnsworthWpm' | 'tone' | 'groupSize' | 'groupCount' | 'kochLevel' | 'repeatCount' | 'countdownSeconds' | 'timedMinutes' | 'mixedLetterPercent' | 'sessionTargetAttempts', value: string): void {
-        this.markPresetModified();
+        this.scheduleUiStateSave();
         const ranges = {
             wpm: [5, 40], farnsworthWpm: [5, this.wpm], tone: [350, 900],
             groupSize: [1, 8], groupCount: [1, 10], kochLevel: [2, 26],
-            repeatCount: [1, 3], countdownSeconds: [0, 5], timedMinutes: [0, 5],
+            repeatCount: [1, this.mode === 'qsoWords' ? 10 : 3], countdownSeconds: [0, 5], timedMinutes: [0, 5],
             mixedLetterPercent: [0, 100],
             sessionTargetAttempts: [5, 25],
         } as const;
@@ -1069,19 +1127,28 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         if (!Number.isFinite(parsed)) return;
         if (setting === 'repeatCount' && this.isBasicMode && this.instantCharacters) return;
         const [minimum, maximum] = ranges[setting];
-        this[setting] = Math.min(maximum, Math.max(minimum, parsed));
+        this[setting] = Math.min(maximum, Math.max(minimum, setting === 'repeatCount' ? Math.round(parsed) : parsed));
         if (setting === 'wpm' && this.farnsworthWpm > this.wpm) this.farnsworthWpm = this.wpm;
         if (setting === 'timedMinutes' && this.isBasicMode && !this.instantCharacters) this.exerciseFormat = this.timedMinutes > 0 ? 'continuous' : 'groups';
         if (['groupSize', 'groupCount', 'kochLevel', 'repeatCount', 'countdownSeconds', 'timedMinutes', 'mixedLetterPercent'].includes(setting)) this.resetExercise();
         else {
             this.stop();
             if (this.exercise && (setting === 'wpm' || setting === 'farnsworthWpm')) this.prepareTimeline();
+            if (!this.exercise) this.previewExercise = this.generateExercise();
         }
     }
 
     newExercise(playImmediately = true): void {
         this.stop();
-        const generated = this.generateExercise();
+        let generated: GeneratedExercise;
+        if (this.mode === 'qsoWords') {
+            this.wordHistoryIndex += 1;
+            generated = this.wordHistory[this.wordHistoryIndex]
+                ?? (!this.exercise && this.previewExercise.text ? this.previewExercise : this.generateExercise());
+            this.wordHistory[this.wordHistoryIndex] = generated;
+        } else {
+            generated = !this.exercise && this.previewExercise.text ? this.previewExercise : this.generateExercise();
+        }
         this.exercise = generated.text;
         this.exerciseContext = generated.context;
         this.copy = '';
@@ -1092,15 +1159,17 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         this.copyMarks = [];
         this.exercisePlayCount = 0;
         this.prepareTimeline();
-        window.setTimeout(() => this.copyInput?.nativeElement.focus(), 0);
+        if (!this.listeningOnly) window.setTimeout(() => this.copyInput?.nativeElement.focus(), 0);
         if (playImmediately) this.play();
     }
 
+    previousWord(): void {
+        if (this.mode !== 'qsoWords' || this.wordHistoryIndex <= 0) return;
+        this.wordHistoryIndex -= 2;
+        this.newExercise();
+    }
+
     nextExercise(): void {
-        if (this.activePreset === 'koch' && this.mode === 'letters' && this.letterDrill === 'koch') {
-            this.kochLevel = Math.min(this.kochSequence.length, Math.max(2, this.kochLevel + 1));
-            this.persistUiState();
-        }
         this.newExercise();
     }
 
@@ -1151,7 +1220,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
 
         if (this.audioEffect !== 'clean') this.scheduleNoise(startAt, this.playbackDuration - offset, master);
 
-        this.playbackStartedAt = context.currentTime;
+        this.playbackStartedAt = startAt;
         this.playbackOffset = offset;
         this.isPlaying = true;
         this.isPaused = false;
@@ -1196,7 +1265,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     checkCopy(): void {
-        if (!this.exercise || !this.copy.trim()) return;
+        if (this.listeningOnly || !this.exercise || !this.copy.trim()) return;
         const revealedBeforeCheck = this.answerRevealed;
         this.clearPlayback(false);
         this.playbackPosition = this.playbackDuration;
@@ -1229,13 +1298,23 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         }, ...this.results];
         this.savePracticeMetric(exerciseAccuracy, comparison.correct, denominator, comparison.confusions, revealedBeforeCheck);
         if (this.adaptiveSpeed && this.isBasicMode) this.adjustAdaptiveSpeed(exerciseAccuracy);
-        if (this.instantCharacters && this.isBasicMode) window.setTimeout(() => this.newExercise(), 700);
+        if ((this.instantCharacters && this.isBasicMode) || this.mode === 'qsoWords') {
+            const checkedExercise = this.exercise;
+            this.advanceTimer = window.setTimeout(() => {
+                if (!this.listeningOnly && this.hasChecked && this.exercise === checkedExercise) this.newExercise();
+            }, 700);
+        }
     }
 
     resetSession(): void {
         this.stop();
         this.exercise = '';
+        this.wordHistory = [];
+        this.wordHistoryIndex = -1;
         this.exerciseContext = '';
+        this.listeningOnly = false;
+        this.contentTagsHidden = false;
+        this.previewExercise = this.generateExercise();
         this.copy = '';
         this.hasChecked = false;
         this.answerRevealed = false;
@@ -1328,7 +1407,12 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     private resetExercise(): void {
         this.stop();
         this.exercise = '';
+        this.wordHistory = [];
+        this.wordHistoryIndex = -1;
         this.exerciseContext = '';
+        this.listeningOnly = false;
+        this.contentTagsHidden = false;
+        this.previewExercise = this.generateExercise();
         this.copy = '';
         this.hasChecked = false;
         this.answerRevealed = false;
@@ -1338,6 +1422,12 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     private applyExerciseFormat(format: ExerciseFormat): void {
+        if (this.mode === 'qsoWords') {
+            this.exerciseFormat = 'continuous';
+            this.instantCharacters = false;
+            this.timedMinutes = 0;
+            return;
+        }
         this.exerciseFormat = format;
         if (format === 'instant') {
             this.instantCharacters = true;
@@ -1365,7 +1455,13 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         else if (this.mode === 'qso') generated = this.randomQsoOver();
         else if (this.mode === 'letters') generated = this.generateLetterExercise();
         else if (this.mode === 'numbers') generated = this.generateNumberExercise();
-        else generated = this.generateMixedExercise();
+        else if (this.mode === 'lettersNumbers') {
+            const pool = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            generated = {
+                text: this.instantCharacters ? this.weightedPick(pool) : this.randomGroups(pool, this.effectiveGroupCount()),
+                context: this.instantCharacters ? 'Instant letter or number: type one answer to continue' : 'Letters + Numbers: A–Z and 0–9 only',
+            };
+        } else generated = this.generateMixedExercise();
 
         return this.enforceContentBoundary(generated);
     }
@@ -1382,25 +1478,19 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
 
     private generateLetterExercise(): GeneratedExercise {
         const count = this.effectiveGroupCount();
-        let pool = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const pool = this.letterPool();
         let context = 'Random letter groups';
         if (this.letterDrill === 'koch') {
-            pool = this.kochSequence.slice(0, this.kochLevel);
             context = `Koch progression: ${this.kochLevel} characters`;
         } else if (this.letterDrill === 'trouble') {
-            pool = this.troublePair;
             context = `Trouble-pair drill: ${this.troublePair.split('').join(' and ')}`;
         } else if (this.letterDrill === 'confusions') {
-            pool = this.confusionPool(true);
             context = this.topConfusions.length ? `Targeted from your confusion history: ${this.confusionLabel(true)}` : 'No letter confusions yet; using a starter pair';
         } else if (this.letterDrill === 'custom') {
-            pool = this.customCharacters.replace(/[^A-Z]/g, '') || 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
             context = `Custom letter set: ${pool}`;
         } else if (this.letterDrill === 'vowels') {
-            pool = 'AEIOU';
             context = 'Vowel recognition drill';
         } else if (this.letterDrill === 'consonants') {
-            pool = 'BCDFGHJKLMNPQRSTVWXYZ';
             context = 'Consonant recognition drill';
         }
 
@@ -1456,12 +1546,9 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     private generateQsoWords(): string {
-        const pool = this.wordCategory === 'all'
-            ? [...new Set(Object.values(this.vocabulary).flat())]
-            : [...this.vocabulary[this.wordCategory]];
-        const weak = this.weakWords.map((item) => item.word).filter((word) => pool.includes(word));
-        const reviewCount = Math.min(weak.length, Math.floor(this.groupCount / 2));
-        return [...this.randomItems(weak, reviewCount), ...this.randomItems(pool, this.groupCount - reviewCount)].join(' ');
+        const pool = this.contentTags;
+        const candidates = pool.filter((word) => word !== this.exercise);
+        return this.pickItem(candidates.length ? candidates : pool);
     }
 
     private randomQsoOver(): GeneratedExercise {
@@ -1526,6 +1613,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
             : 0;
 
         this.timeline = [];
+        this.tagTimings = [];
 
         for (let repetition = 0; repetition < this.repeatCount; repetition += 1) {
             const offset =
@@ -1533,6 +1621,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
                 + this.audioPaddingSeconds
                 + repetition * (baseDuration + 1);
 
+            this.tagTimings.push(...this.baseTagTimings.map((tag) => ({ ...tag, start: tag.start + offset, end: tag.end + offset })));
             this.timeline.push(
                 ...baseTimeline.map((event) => ({
                     start: event.start + offset,
@@ -1557,21 +1646,29 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         const spacingUnit = Math.max(dot, (60 / this.farnsworthWpm - 31 * dot) / 19);
         const events: ToneEvent[] = [];
         let cursor = 0;
-        const words = this.exercise.split(' ').filter(Boolean);
+        const words = this.exercise.split(/\s+/).filter(Boolean);
+        this.baseTagTimings = [];
+        const tags = this.contentTags;
 
         words.forEach((word, wordIndex) => {
-            const patterns = this.joinedProsigns.has(word)
+            const tagStart = cursor;
+            const joined = (this.mode === 'qso' || this.mode === 'qsoWords') && this.joinedProsigns.has(word);
+            const characters = word.split('').filter((character) => Boolean(this.morse[character]));
+            const patterns = joined
                 ? [word.split('').map((character) => this.morse[character] ?? '').join('')]
-                : word.split('').map((character) => this.morse[character]).filter((pattern): pattern is string => Boolean(pattern));
+                : characters.map((character) => this.morse[character]);
             patterns.forEach((pattern, characterIndex) => {
+                const characterStart = cursor;
                 pattern.split('').forEach((symbol, symbolIndex) => {
                     const duration = symbol === '.' ? dot : dot * 3;
                     events.push({ start: cursor, duration });
                     cursor += duration;
                     if (symbolIndex < pattern.length - 1) cursor += dot;
                 });
+                if (!this.usesWordTags) this.baseTagTimings.push({ index: tags.indexOf(characters[characterIndex]), start: characterStart, end: cursor });
                 if (characterIndex < patterns.length - 1) cursor += spacingUnit * 3 * this.spacingVariation();
             });
+            if (this.usesWordTags) this.baseTagTimings.push({ index: tags.indexOf(word), start: tagStart, end: cursor });
             if (wordIndex < words.length - 1) cursor += spacingUnit * 7 * this.spacingVariation();
         });
         return events;
@@ -1605,10 +1702,16 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         this.playbackPosition = this.playbackDuration;
         this.clearPlayback(false);
         this.isPaused = false;
-        if (this.revealMode === 'afterPlayback') this.answerRevealed = true;
+        if (this.mode === 'qsoWords' && this.listeningOnly) {
+            this.newExercise();
+            return;
+        }
+        if (!this.listeningOnly && this.revealMode === 'afterPlayback') this.answerRevealed = true;
     }
 
     private clearPlayback(resetPosition: boolean): void {
+        if (this.advanceTimer !== null) window.clearTimeout(this.advanceTimer);
+        this.advanceTimer = null;
         this.activeSources.forEach((source) => {
             try { source.stop(); } catch { /* source already ended */ }
         });
@@ -1964,7 +2067,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
 
     private metricConditionKey(attempt: CwPracticeAttempt): string {
         if (!attempt.exerciseFormat && !attempt.audioEffect && !attempt.trainingGoal) return 'legacy';
-        const basicMode = attempt.mode === 'letters' || attempt.mode === 'numbers' || attempt.mode === 'mixed';
+        const basicMode = attempt.mode === 'letters' || attempt.mode === 'numbers' || attempt.mode === 'lettersNumbers' || attempt.mode === 'mixed';
         return [
             attempt.trainingGoal ?? 'unknown-goal',
             attempt.exerciseFormat ?? 'unknown-format',
@@ -1977,7 +2080,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     private currentMetricConditionKey(): string {
-        const basicMode = this.mode === 'letters' || this.mode === 'numbers' || this.mode === 'mixed';
+        const basicMode = this.mode === 'letters' || this.mode === 'numbers' || this.mode === 'lettersNumbers' || this.mode === 'mixed';
         return [
             this.trainingGoal,
             this.exerciseFormat,
@@ -1994,7 +2097,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         const goal = this.trainingGoals.find((item) => item.value === attempt.trainingGoal)?.label ?? attempt.trainingGoal ?? 'Unknown goal';
         const format = this.exerciseFormats.find((item) => item.value === attempt.exerciseFormat)?.label ?? attempt.exerciseFormat ?? 'Unknown format';
         const conditions = [goal, format, attempt.audioEffect ?? 'unknown audio'];
-        const basicMode = attempt.mode === 'letters' || attempt.mode === 'numbers' || attempt.mode === 'mixed';
+        const basicMode = attempt.mode === 'letters' || attempt.mode === 'numbers' || attempt.mode === 'lettersNumbers' || attempt.mode === 'mixed';
         if (basicMode && attempt.exerciseFormat !== 'instant' && attempt.groupSize) conditions.push(`groups of ${attempt.groupSize}`);
         if (attempt.exerciseFormat === 'continuous' && attempt.timedMinutes) conditions.push(`${attempt.timedMinutes} min`);
         if ((attempt.repeatCount ?? 1) > 1) conditions.push(`×${attempt.repeatCount}`);
@@ -2010,8 +2113,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         return `${chart}|${mode}|${drill}|${traceKey}`;
     }
 
-    private markPresetModified(): void {
-        if (this.activePreset) this.presetModified = true;
+    private scheduleUiStateSave(): void {
         window.setTimeout(() => this.persistUiState(), 0);
     }
 
@@ -2042,6 +2144,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
                 };
                 const hasLocalUiState = Boolean(localStorage.getItem(this.storageKey('ui')));
                 if (serverProfile.settings && !hasLocalUiState) this.applyUiState(serverProfile.settings);
+                if (!this.exercise) this.previewExercise = this.generateExercise();
                 localStorage.setItem(this.storageKey('profile'), JSON.stringify(this.profile));
                 this.persistUiState();
                 this.profileSaved = true;
@@ -2106,8 +2209,6 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         this.mode = 'letters';
         this.trainingGoal = 'accuracy';
         this.exerciseFormat = 'groups';
-        this.activePreset = null;
-        this.presetModified = false;
         this.activeWorkspace = 'practice';
         this.mobileSetupOpen = false;
         this.showAllMetricConditions = false;
@@ -2117,8 +2218,8 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         this.qsoStage = 'mixed';
         this.wordCategory = 'all';
         this.audioEffect = 'clean';
-        this.wpm = 17;
-        this.farnsworthWpm = 7;
+        this.wpm = 20;
+        this.farnsworthWpm = 10;
         this.tone = 550;
         this.groupSize = 5;
         this.groupCount = 5;
@@ -2149,11 +2250,14 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         if (ui.activeWorkspace) this.activeWorkspace = ui.activeWorkspace;
         if (typeof ui.showAllMetricConditions === 'boolean') this.showAllMetricConditions = ui.showAllMetricConditions;
         if (ui.trainingGoal) this.trainingGoal = ui.trainingGoal;
-        if (ui.mode) this.mode = ui.mode;
+        if (ui.mode) this.mode = ui.mode === 'mixed' ? 'lettersNumbers' : ui.mode === 'qso' ? 'qsoWords' : ui.mode;
         if (ui.exerciseFormat) this.exerciseFormat = ui.exerciseFormat;
-        if (ui.activePreset !== undefined) this.activePreset = ui.activePreset;
         if (ui.wpm) this.wpm = ui.wpm;
         if (ui.farnsworthWpm) this.farnsworthWpm = Math.min(ui.farnsworthWpm, this.wpm);
+        if ((ui.uiStateVersion ?? 1) < 3 && ui.wpm === 17 && ui.farnsworthWpm === 7) {
+            this.wpm = 20;
+            this.farnsworthWpm = 10;
+        }
         if (ui.audioEffect) this.audioEffect = ui.audioEffect;
         if (ui.groupSize) this.groupSize = ui.groupSize;
         if (ui.groupCount) this.groupCount = ui.groupCount;
@@ -2175,6 +2279,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         if (ui.qsoStage) this.qsoStage = ui.qsoStage;
         if (ui.wordCategory) this.wordCategory = ui.wordCategory;
         if (ui.settingsSections) this.settingsSections = { ...this.settingsSections, ...ui.settingsSections };
+        if (this.mode === 'qsoWords' || !this.availableExerciseFormats.some((format) => format.value === this.exerciseFormat)) this.applyExerciseFormat('groups');
     }
 
     private migrateLegacyOperatorState(operator: string): void {
@@ -2232,7 +2337,6 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
             trainingGoal: this.trainingGoal,
             mode: this.mode,
             exerciseFormat: this.exerciseFormat,
-            activePreset: this.activePreset,
             wpm: this.wpm,
             farnsworthWpm: this.farnsworthWpm,
             audioEffect: this.audioEffect,
@@ -2341,6 +2445,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     private currentDrillName(): string {
         if (this.mode === 'letters') return this.letterDrill;
         if (this.mode === 'numbers') return this.numberDrill;
+        if (this.mode === 'lettersNumbers') return 'random';
         if (this.mode === 'mixed') return this.mixedDrill;
         if (this.mode === 'qsoWords') return this.wordCategory;
         if (this.mode === 'qso') return this.qsoStage;
