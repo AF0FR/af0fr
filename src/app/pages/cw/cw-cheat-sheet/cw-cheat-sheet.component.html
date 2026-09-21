@@ -149,5 +149,103 @@ TNX FER NICE QSO <b>BT</b> 73 ES HPE CU AGN
         ></textarea>
     </label>
     </div>
+    <section class="mt-6 border-t border-slate-300 pt-4 text-slate-950 print:hidden" aria-labelledby="expanded-cw-heading">
+        <header class="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="expanded-cw-heading" class="text-sm font-black uppercase tracking-wider">Expanded CW QSO reference</h2>
+            <p class="font-mono text-xs font-bold">LICW 9696 · SKCC 31263</p>
+        </header>
+        <div class="grid min-w-0 gap-x-6 gap-y-4 text-xs leading-5 sm:grid-cols-2 xl:grid-cols-3">
+            <section class="min-w-0">
+                <h3 class="mb-1 font-black uppercase text-orange-800">01 · Call CQ</h3>
+                <code class="block whitespace-pre-line break-words">QRL?
+{{ printableCq }}</code>
+                <p class="mt-1 text-slate-600">Listen for a reply; copy their call.</p>
+            </section>
+            <section class="min-w-0">
+                <h3 class="mb-1 font-black uppercase text-orange-800">02 · Answer CQ</h3>
+                <code class="block break-words">{{ valueOrSlot(otherCall, 'HISCALL') }} DE {{ valueOrSlot(ownCall, 'URCALL') }} {{ valueOrSlot(ownCall, 'URCALL') }} K</code>
+                <p class="mt-1 text-slate-600">Listen for your call and their exchange, then reply.</p>
+            </section>
+            <section class="min-w-0">
+                <h3 class="mb-1 font-black uppercase text-orange-800">03 · First exchange</h3>
+                <code class="block whitespace-pre-line break-words">{{ printableExchange }}</code>
+            </section>
+            <section class="min-w-0">
+                <h3 class="mb-1 font-black uppercase text-orange-800">Acknowledge &amp; continue</h3>
+                <code class="block whitespace-pre-line break-words">R R {{ valueOrSlot(otherName, 'HISNAME') }} TNX FER RPRT BT
+FB ON UR ANT BT
+HR USING {{ valueOrSlot(antenna, 'ANT') }} BT
+HW HIGH IS UR ANT? BK</code>
+                <p class="mt-1 text-slate-600">Acknowledge → comment → share → ask one question.</p>
+            </section>
+            <section class="min-w-0">
+                <h3 class="mb-1 font-black uppercase text-orange-800">Station &amp; key</h3>
+                <code class="block whitespace-pre-line break-words">RIG HR {{ valueOrSlot(rig, 'RIG') }} AT {{ valueOrSlot(power, 'WATTS') }} W BT
+ANT {{ valueOrSlot(antenna, 'ANT') }} UP {{ valueOrSlot(antennaHeight, 'HEIGHT') }} FT BT
+KEY HR {{ valueOrSlot(key, 'KEY') }} BT
+HW U LIKE UR RIG? BK
+WHAT KEY U USING? BK</code>
+            </section>
+            <section class="min-w-0">
+                <h3 class="mb-1 font-black uppercase text-orange-800">CW &amp; clubs</h3>
+                <code class="block whitespace-pre-line break-words">LICW NR 9696 ES SKCC NR 31263 BT
+HAM {{ valueOrSlot(yearsHam, 'HAM YEARS') }} YRS BT
+CW FER {{ valueOrSlot(yearsCw, 'CW YEARS') }} YRS BT
+HW LONG U HAM? BK
+WHAT GOT U INTO CW? BK</code>
+            </section>
+            <section class="min-w-0">
+                <h3 class="mb-1 font-black uppercase text-orange-800">Projects &amp; portable</h3>
+                <code class="block whitespace-pre-line break-words">NW WRKING ON {{ valueOrSlot(recentProject, 'PROJECT') }} BT
+DO U BUILD? BK
+ANY HB GEAR? BK
+U WORK PORTABLE? BK
+RUN QRP OFTEN? BK</code>
+            </section>
+            <section class="min-w-0">
+                <h3 class="mb-1 font-black uppercase text-orange-800">Weather &amp; life</h3>
+                <code class="block whitespace-pre-line break-words">WX HR {{ valueOrSlot(weather, 'WX') }} BT
+TEMP {{ valueOrSlot(temperature, 'TEMP') }} BT
+OTHER HOBBY IS {{ valueOrSlot(hobby, 'HOBBY') }} BT
+OCCUPATION {{ valueOrSlot(occupation, 'JOB') }} BT
+HW WX UR QTH? BK</code>
+            </section>
+            <section class="min-w-0">
+                <h3 class="mb-1 font-black uppercase text-orange-800">Missed something?</h3>
+                <code class="block whitespace-pre-line break-words">SRI PSE QRS BK
+NAME AGN PSE BK
+QTH AGN PSE BK
+RST AGN PSE BK
+SRI QRM PSE RPT BK
+R R TNX FER PATIENCE BK</code>
+            </section>
+            <section class="min-w-0">
+                <h3 class="mb-1 font-black uppercase text-orange-800">Next time</h3>
+                <code class="block whitespace-pre-line break-words">FAV BAND {{ valueOrSlot(favoriteBand, 'BAND') }} BT
+QRV {{ valueOrSlot(operatingSchedule, 'TIME / BAND') }} BT
+WHEN U QRV? BK
+SAME FREQ TMW? BK
+QSL VIA {{ valueOrSlot(qslPreference, 'QSL VIA') }}</code>
+            </section>
+            <section class="min-w-0">
+                <h3 class="mb-1 font-black uppercase text-orange-800">Close the QSO</h3>
+                <code class="block whitespace-pre-line break-words">TNX {{ valueOrSlot(otherName, 'HISNAME') }} FER NICE QSO BT
+73 ES HPE CU AGN
+{{ valueOrSlot(otherCall, 'HISCALL') }} DE {{ valueOrSlot(ownCall, 'URCALL') }} SK</code>
+                <p class="mt-1 text-slate-600">Reply to their close: <code class="text-slate-950">TU FER QSO 73 ES CU AGN</code></p>
+            </section>
+            <section class="min-w-0">
+                <h3 class="mb-1 font-black uppercase text-orange-800">Quick reminders</h3>
+                <dl class="grid grid-cols-[auto_1fr] gap-x-3">
+                    <dt class="font-mono font-bold">K / KN</dt><dd>Any station / named station reply</dd>
+                    <dt class="font-mono font-bold">BT / BK</dt><dd>Separate thoughts / hand back</dd>
+                    <dt class="font-mono font-bold">SK</dt><dd>End the contact</dd>
+                    <dt class="font-mono font-bold">QRS / AGN</dt><dd>Slower / again</dd>
+                    <dt class="font-mono font-bold">QRM / QSB</dt><dd>Interference / fading</dd>
+                    <dt class="font-mono font-bold">FB / ES</dt><dd>Fine business / and</dd>
+                </dl>
+            </section>
+        </div>
+    </section>
 </section>
 }
