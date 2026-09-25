@@ -154,6 +154,14 @@ TNX FER NICE QSO <b>BT</b> 73 ES HPE CU AGN
             <h2 id="expanded-cw-heading" class="text-sm font-black uppercase tracking-wider">Expanded CW QSO reference</h2>
             <p class="font-mono text-xs font-bold">LICW 9696 · SKCC 31263</p>
         </header>
+        <section class="mb-4 rounded-xl border border-orange-200 bg-orange-50 p-3 text-xs leading-5" aria-labelledby="short-qso-heading">
+            <h3 id="short-qso-heading" class="mb-2 font-black uppercase text-orange-800">Short QSO · answer, exchange, close</h3>
+            <div class="grid min-w-0 gap-3 sm:grid-cols-3">
+                <div><h4 class="font-bold">Answer CQ</h4><code class="block break-words">{{ valueOrSlot(otherCall, 'HISCALL') }} DE {{ valueOrSlot(ownCall, 'URCALL') }} K</code></div>
+                <div><h4 class="font-bold">After their exchange</h4><code class="block break-words">R UR RST {{ valueOrSlot(rst, 'RST') }} BT NAME {{ valueOrSlot(ownName, 'URNAME') }} BT QTH {{ valueOrSlot(qth, 'CITY STATE') }} BK</code></div>
+                <div><h4 class="font-bold">Close</h4><code class="block break-words">R TU FER QSO 73 {{ valueOrSlot(otherCall, 'HISCALL') }} DE {{ valueOrSlot(ownCall, 'URCALL') }} SK</code></div>
+            </div>
+        </section>
         <div class="grid min-w-0 gap-x-6 gap-y-4 text-xs leading-5 sm:grid-cols-2 xl:grid-cols-3">
             <section class="min-w-0">
                 <h3 class="mb-1 font-black uppercase text-orange-800">01 · Call CQ</h3>
