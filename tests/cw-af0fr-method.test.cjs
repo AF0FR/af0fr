@@ -135,7 +135,7 @@ test('spoken instruction surrounds actual CW tones and respects pauses', async (
     assert.equal(page.methodSteps.length, 14);
     page.startExercise();
     await settle();
-    assert.ok(voice.requests.at(-1).endsWith('listen-K.mp3?v=3'));
+    assert.ok(voice.requests.at(-1).endsWith('listen-K.mp3?v=4'));
     assert.ok(Math.abs(page.playbackDuration - 2) < 1e-9);
     assert.equal(page.tagTimings[0].start, 0.4);
     await finishStep(h);
@@ -151,7 +151,7 @@ test('spoken instruction surrounds actual CW tones and respects pauses', async (
     await finishStep(h);
     assert.equal(page.methodSteps[page.methodStepIndex].label, 'Instruction tone 3/3');
     await finishStep(h);
-    assert.ok(voice.requests.at(-1).endsWith('letter-K.mp3?v=3'));
+    assert.ok(voice.requests.at(-1).endsWith('letter-K.mp3?v=4'));
     await finishStep(h);
     assert.equal(page.methodStepIndex, 5);
     assert.equal(page.methodSteps[5].part, 'word');

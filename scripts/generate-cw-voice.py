@@ -42,21 +42,19 @@ letter_phonemes = dict(zip('ABCDEFGHIJKLMNOPQRSTUVWXYZ', [
     'ziː',       # Z
 ]))
 assert letter_phonemes['A'] != letter_phonemes['I']
-for index, (key, text) in enumerate(cues.items(), 1):
+for index, key in enumerate(cues, 1):
+    if key.startswith('letter-'):
+        # These assets are edited human recordings. Preserve them on regeneration.
+        continue
+    if not key.startswith('listen-'):
+        raise ValueError(f'Unexpected voice cue: {key}')
     letter = key.split('-')[1]
     phonemes = letter_phonemes[letter]
     missing = set(phonemes) - voice.config.phoneme_id_map.keys()
     if missing:
         raise ValueError(f'Unsupported phonemes for {letter}: {missing}')
-    if key.startswith('letter-'):
-        spoken = '[[' + phonemes + '.]]'
-        scale = 1.8
-    elif key.startswith('listen-'):
-        spoken = 'Listen for the [[' + phonemes + '.]]'
-        scale = 1.45
-    else:
-        raise ValueError(f'Unexpected voice cue: {key}')
-    config = SynthesisConfig(length_scale=scale, noise_scale=0.4, noise_w_scale=0.6)
+    spoken = 'Listen for the [[' + phonemes + '.]]'
+    config = SynthesisConfig(length_scale=1.45, noise_scale=0.4, noise_w_scale=0.6)
     with tempfile.TemporaryDirectory(prefix='af0fr-cue-') as temporary:
         wav_path = Path(temporary) / 'cue.wav'
         with wave.open(str(wav_path), 'wb') as wav:

@@ -1974,7 +1974,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     private loadMethodVoice(key: string, context: AudioContext): Promise<AudioBuffer> {
         const cached = this.methodVoiceBuffers.get(key);
         if (cached) return cached;
-        const url = new URL(`assets/cw-voice/${encodeURIComponent(key)}.mp3?v=3`, document.baseURI);
+        const url = new URL(`assets/cw-voice/${encodeURIComponent(key)}.mp3?v=4`, document.baseURI);
         const request = fetch(url).then((response) => {
             if (!response.ok) throw new Error('Voice recording unavailable');
             return response.arrayBuffer();
