@@ -2,8 +2,10 @@ import { isPlatformBrowser, NgIf } from '@angular/common';
 import { ChangeDetectionStrategy, Component, Inject, Input, OnInit, PLATFORM_ID } from '@angular/core';
 import { OpsLogCategory } from '../../af0fr_logbook/models/logbook.model';
 import { standardCq, standardExchange } from '../cw-protocol';
+import { CwPromptCardComponent } from './cw-prompt-card.component';
 
 type CheatSheetField =
+    | 'skccNumber' | 'licwNumber' | 'grid' | 'spc'
     | 'notes'
     | 'ownCall'
     | 'otherCall'
@@ -31,13 +33,14 @@ type CheatSheetField =
 @Component({
     selector: 'cw-cheat-sheet',
     standalone: true,
-    imports: [NgIf],
+    imports: [NgIf, CwPromptCardComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './cw-cheat-sheet.component.html',
 })
 export class CwCheatSheetComponent implements OnInit {
     private readonly storageKey = 'cw-on-air-reference-v1';
     private readonly fields: CheatSheetField[] = [
+        'skccNumber', 'licwNumber', 'grid', 'spc',
         'notes', 'ownCall', 'otherCall', 'greeting', 'rst', 'qth', 'ownName', 'otherName',
         'key', 'rig', 'power', 'antenna', 'antennaHeight', 'weather', 'temperature',
         'yearsHam', 'yearsCw', 'occupation', 'hobby',
@@ -50,6 +53,11 @@ export class CwCheatSheetComponent implements OnInit {
     @Input() protocol: OpsLogCategory = 'standard';
 
     notes = '';
+    skccNumber = '31263';
+    licwNumber = '9696';
+    grid = '';
+    spc = '';
+    referenceExpanded = false;
     ownCall = '';
     otherCall = '';
     greeting = 'GM';
@@ -96,6 +104,14 @@ export class CwCheatSheetComponent implements OnInit {
 
     valueOrSlot(value: string, label: string): string {
         return value.trim().toUpperCase() || `<${label}>`;
+    }
+
+    get promptDetails(): Record<string, string> {
+        return Object.fromEntries(this.fields.map(field => [field, this[field]]));
+    }
+
+    updatePromptField(event: { field: string; value: string }): void {
+        if (this.fields.includes(event.field as CheatSheetField)) this.updateField(event.field as CheatSheetField, event.value);
     }
 
     updateField(field: CheatSheetField, value: string): void {
