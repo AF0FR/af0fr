@@ -36,6 +36,7 @@ def ensure_cw_metrics_table():
                     missing_count integer,
                     incorrect_count integer,
                     extra_count integer,
+                    copy_seconds double precision,
                     created_at timestamptz not null default now()
                 )
                 """
@@ -56,7 +57,8 @@ def ensure_cw_metrics_table():
                     add column if not exists character_correct jsonb not null default '{}'::jsonb,
                     add column if not exists missing_count integer,
                     add column if not exists incorrect_count integer,
-                    add column if not exists extra_count integer
+                    add column if not exists extra_count integer,
+                    add column if not exists copy_seconds double precision
                 """
             )
             cur.execute(

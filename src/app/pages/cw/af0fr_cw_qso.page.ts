@@ -126,6 +126,7 @@ interface CwPracticeAttempt {
     wpm: number;
     farnsworthWpm: number;
     durationSeconds: number;
+    copySeconds?: number | null;
     missedCharacters: Record<string, number>;
     characterScores: Record<string, number>;
     confusions: Record<string, number>;
@@ -145,6 +146,14 @@ interface CwPracticeAttempt {
     incorrectCount?: number | null;
     extraCount?: number | null;
     createdAt?: string;
+}
+
+interface CwCopySpeedSession {
+    sessionId: string;
+    endedAt: string;
+    attempts: number;
+    correctCharacters: number;
+    copySeconds: number;
 }
 
 interface CwPerformanceOverview {
@@ -548,6 +557,9 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     weakCharacterCounts: Record<string, number> = {};
     confusionCounts: Record<string, number> = {};
     metricTrends: CwTrendSeries[] = [];
+    copySpeedHistory: { sessionId: string; endedAt: string; attempts: number; wpm: number; height: number }[] = [];
+    copySpeedHistoryStatus: 'loading' | 'ready' | 'unavailable' = 'loading';
+    private copySpeedRequest = 0;
     speedAccuracySeries: CwSpeedSeries[] = [];
     proficiencySummaries: CwProficiency[] = [];
     metricsLoading = false;
@@ -1141,6 +1153,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         this.showAllMetricConditions = showAll;
         this.selectedMetricPoint = '';
         this.persistUiState();
+        this.loadCopySpeedHistory();
     }
 
     toggleSettingsSection(section: SettingsSection, open: boolean): void {
@@ -1600,7 +1613,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
                 ? instantCopySeconds > 0 ? this.copyRate(comparison.correct, instantCopySeconds) : null
                 : Math.round(this.farnsworthWpm * exerciseAccuracy) / 100,
         }, ...this.results];
-        this.savePracticeMetric(exerciseAccuracy, comparison.correct, denominator, comparison.confusions, revealedBeforeCheck);
+        this.savePracticeMetric(exerciseAccuracy, comparison.correct, denominator, comparison.confusions, revealedBeforeCheck, instantCopySeconds || null);
         if (this.adaptiveSpeed && this.isBasicMode) this.adjustAdaptiveSpeed(exerciseAccuracy);
         if (this.isInstantCopy || this.isWordMode) {
             const checkedExercise = this.exercise;
@@ -1645,6 +1658,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     loadPracticeMetrics(): void {
+        if (this.activeWorkspace === 'progress') this.loadCopySpeedHistory();
         const operator = this.profile.call.trim() || 'N0CALL';
         this.metricsLoading = true;
         const params = new HttpParams().set('operator', operator).set('limit', 300);
@@ -1662,7 +1676,34 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
             error: () => {
                 this.metricsOnline = false;
                 this.metricsLoading = false;
-                this.showToast('Progress service unavailable', 'error');
+            },
+        });
+    }
+
+    private loadCopySpeedHistory(): void {
+        const request = ++this.copySpeedRequest;
+        if (!this.showAllMetricConditions && this.exerciseFormat !== 'instant') return;
+        this.copySpeedHistoryStatus = 'loading';
+        const params = new HttpParams()
+            .set('operator', this.profile.call.trim() || 'N0CALL')
+            .set('show_all', this.showAllMetricConditions)
+            .set('mode', this.mode)
+            .set('drill', this.currentDrillName())
+            .set('training_goal', this.trainingGoal)
+            .set('audio_effect', this.audioEffect)
+            .set('strict_spacing', this.strictSpacing);
+        this.http.get<CwCopySpeedSession[]>(`${environment.apiUrl}/cw-copy-speed-history`, { params }).subscribe({
+            next: (sessions) => {
+                if (request !== this.copySpeedRequest) return;
+                const points = sessions.map(({ sessionId, endedAt, attempts, correctCharacters, copySeconds }) => ({
+                    sessionId, endedAt, attempts, wpm: this.copyRate(correctCharacters, copySeconds),
+                })).reverse();
+                const maxWpm = Math.max(1, ...points.map(({ wpm }) => wpm));
+                this.copySpeedHistory = points.map((point) => ({ ...point, height: point.wpm * 100 / maxWpm }));
+                this.copySpeedHistoryStatus = 'ready';
+            },
+            error: () => {
+                if (request === this.copySpeedRequest) this.copySpeedHistoryStatus = 'unavailable';
             },
         });
     }
@@ -2240,7 +2281,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         localStorage.setItem(this.storageKey('confusions'), JSON.stringify(this.confusionCounts));
     }
 
-    private savePracticeMetric(accuracy: number, correctCharacters: number, totalCharacters: number, confusions: Record<string, number>, revealedBeforeCheck: boolean): void {
+    private savePracticeMetric(accuracy: number, correctCharacters: number, totalCharacters: number, confusions: Record<string, number>, revealedBeforeCheck: boolean, copySeconds: number | null): void {
         const missedCharacters: Record<string, number> = {};
         const characterScores: Record<string, number> = {};
         const characterAttempts: Record<string, number> = {};
@@ -2267,6 +2308,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
             wpm: this.wpm,
             farnsworthWpm: this.farnsworthWpm,
             durationSeconds: Math.round(this.playbackDuration * 10) / 10,
+            copySeconds,
             missedCharacters,
             characterScores,
             confusions,
@@ -2291,7 +2333,6 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
             next: () => {
                 this.metricsOnline = true;
                 this.loadPracticeMetrics();
-                this.showToast('Attempt synced', 'success');
             },
             error: () => {
                 this.metricsOnline = false;
@@ -2299,7 +2340,6 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
                 pending.push(attempt);
                 localStorage.setItem(this.storageKey('pending-metrics'), JSON.stringify(pending.slice(-100)));
                 this.pendingMetricCount = Math.min(100, pending.length);
-                this.showToast('Attempt saved locally and queued', 'info');
             },
         });
     }
@@ -2581,7 +2621,10 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
                     power: this.normalize(serverProfile.power),
                 };
                 const hasLocalUiState = Boolean(localStorage.getItem(this.storageKey('ui')));
-                if (serverProfile.settings && !hasLocalUiState) this.applyUiState(serverProfile.settings);
+                if (serverProfile.settings && !hasLocalUiState) {
+                    this.applyUiState(serverProfile.settings);
+                    if (this.activeWorkspace === 'progress') this.loadCopySpeedHistory();
+                }
                 if (!this.exercise) this.previewExercise = this.generateExercise();
                 localStorage.setItem(this.storageKey('profile'), JSON.stringify(this.profile));
                 this.persistUiState();

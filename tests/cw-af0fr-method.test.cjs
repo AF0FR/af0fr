@@ -91,7 +91,8 @@ test('restoring Instant characters plays a single character and keeps timed stre
 
 test('starting a session resets progress and instant copy measures response speed', () => {
     const { page, timers } = createPage();
-    page.savePracticeMetric = () => {};
+    const measuredSeconds = [];
+    page.savePracticeMetric = (...args) => measuredSeconds.push(args.at(-1));
     page.selectExerciseFormat('instant');
     page.startExercise();
     const sessionId = page.sessionId;
@@ -123,6 +124,7 @@ test('starting a session resets progress and instant copy measures response spee
     assert.equal(page.results[0].effectiveCopyWpm, null);
     assert.equal(page.attempts, 3);
     assert.equal(page.correctCharacters, 2);
+    assert.deepEqual(measuredSeconds, [2, 2, null]);
 
     page.startExercise();
     assert.equal(page.sessionProgressPercent, 0);

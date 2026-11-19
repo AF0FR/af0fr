@@ -441,6 +441,26 @@
                     </div>
                 </section>
 
+                <section *ngIf="activeWorkspace === 'progress' && (showAllMetricConditions || exerciseFormat === 'instant')" class="rounded-2xl bg-white p-5 shadow-xl sm:rounded-3xl sm:p-6" aria-labelledby="copy-speed-history-title">
+                    <h2 id="copy-speed-history-title" class="text-sm font-black uppercase tracking-widest text-slate-500">Instant characters · Copy WPM</h2>
+                    <p *ngIf="copySpeedHistoryStatus === 'loading'" class="mt-2 text-sm text-slate-500">Loading copy speed history…</p>
+                    <p *ngIf="copySpeedHistoryStatus === 'unavailable'" class="mt-2 text-sm text-slate-500">Copy speed history is temporarily unavailable.</p>
+                    <ng-container *ngIf="copySpeedHistoryStatus === 'ready'">
+                        <p *ngIf="!copySpeedHistory.length" class="mt-2 text-sm text-slate-500">Complete an Instant characters attempt in under six seconds to start tracking Copy WPM.</p>
+                        <figure *ngIf="copySpeedHistory.length" class="mt-2">
+                            <figcaption class="text-xs text-slate-500">Up to 12 recent sessions, oldest to newest. Each bar shows measured words per minute.</figcaption>
+                            <div class="mt-3 overflow-x-auto">
+                                <ol class="flex min-w-max gap-2">
+                                    <li *ngFor="let point of copySpeedHistory" class="grid flex-1 grid-rows-[6rem_auto] text-center text-xs" [attr.title]="(point.endedAt | date:'medium') + ' · ' + point.attempts + ' timed attempts'">
+                                        <div class="relative mx-auto flex h-full w-10 flex-col justify-end rounded-t-md bg-orange-50" aria-hidden="true"><div class="rounded-t-md bg-orange-500" [style.height.%]="point.height"></div></div>
+                                        <div class="border-t border-slate-300 px-1.5 pt-1"><strong class="block text-slate-900">{{ point.wpm }}<span class="sr-only"> WPM</span></strong><time class="text-slate-500" [attr.datetime]="point.endedAt">{{ point.endedAt | date:'MMM d' }}</time></div>
+                                    </li>
+                                </ol>
+                            </div>
+                        </figure>
+                    </ng-container>
+                </section>
+
                 <div *ngIf="activeWorkspace === 'progress' && !metricsLoading && !performanceOverview" class="rounded-2xl bg-white p-5 text-sm text-slate-500 shadow-xl sm:rounded-3xl">No performance evidence for this recipe yet. Complete an exercise or choose “Show all.”</div>
 
                 <details *ngIf="activeWorkspace === 'progress' && visibleProficiencySummaries.length" open class="rounded-2xl bg-white shadow-xl sm:rounded-3xl">

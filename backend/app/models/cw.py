@@ -31,6 +31,7 @@ class CwPracticeAttemptCreate(BaseModel):
     missingCount: Optional[int] = Field(default=None, ge=0)
     incorrectCount: Optional[int] = Field(default=None, ge=0)
     extraCount: Optional[int] = Field(default=None, ge=0)
+    copySeconds: Optional[float] = Field(default=None, gt=0, allow_inf_nan=False)
 
 
 class CwOperatorProfileUpsert(BaseModel):

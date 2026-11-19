@@ -154,7 +154,8 @@ def list_cw_practice_attempts(operator: str, limit: int = 300):
                         missing_count,
                         incorrect_count,
                         extra_count,
-                        created_at
+                        created_at,
+                        copy_seconds
                     from cw_practice_attempts
                     where upper(operator) = upper(%s)
                     order by created_at desc
@@ -172,6 +173,41 @@ def list_cw_practice_attempts(operator: str, limit: int = 300):
             status_code=500,
             detail="Failed to load CW practice attempts",
         ) from exc
+
+
+@router.get("/cw-copy-speed-history")
+def get_cw_copy_speed_history(
+    operator: str,
+    show_all: bool = True,
+    mode: str = "",
+    drill: str = "",
+    training_goal: str = "",
+    audio_effect: str = "",
+    strict_spacing: bool = True,
+):
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                select session_id, max(created_at), count(*),
+                       sum(correct_characters), sum(copy_seconds)
+                from cw_practice_attempts
+                where upper(operator) = upper(%s)
+                  and exercise_format = 'instant'
+                  and session_id is not null
+                  and copy_seconds > 0
+                  and (%s or (mode, drill, training_goal, audio_effect, strict_spacing) = (%s, %s, %s, %s, %s))
+                group by session_id
+                order by max(created_at) desc, session_id desc
+                limit 12
+                """,
+                (operator.strip(), show_all, mode, drill, training_goal, audio_effect, strict_spacing),
+            )
+            return [
+                {"sessionId": session_id, "endedAt": ended_at.isoformat(), "attempts": attempts,
+                 "correctCharacters": correct, "copySeconds": seconds}
+                for session_id, ended_at, attempts, correct, seconds in cur.fetchall()
+            ]
 
 
 @router.post("/cw-practice-attempts", status_code=201)
@@ -210,9 +246,10 @@ def create_cw_practice_attempt(attempt: CwPracticeAttemptCreate):
                         character_correct,
                         missing_count,
                         incorrect_count,
-                        extra_count
+                        extra_count,
+                        copy_seconds
                     )
-                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     returning
                         id,
                         operator,
@@ -242,7 +279,8 @@ def create_cw_practice_attempt(attempt: CwPracticeAttemptCreate):
                         missing_count,
                         incorrect_count,
                         extra_count,
-                        created_at
+                        created_at,
+                        copy_seconds
                     """,
                     (
                         attempt_id,
@@ -273,6 +311,7 @@ def create_cw_practice_attempt(attempt: CwPracticeAttemptCreate):
                         attempt.missingCount,
                         attempt.incorrectCount,
                         attempt.extraCount,
+                        attempt.copySeconds,
                     ),
                 )
                 row = cur.fetchone()

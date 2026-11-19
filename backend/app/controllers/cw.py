@@ -29,6 +29,7 @@ def cw_attempt_row_to_dict(row):
         "incorrectCount": row[26],
         "extraCount": row[27],
         "createdAt": row[28].isoformat(),
+        "copySeconds": row[29],
     }
 
 
