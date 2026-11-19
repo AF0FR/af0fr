@@ -19,10 +19,10 @@ class CwPracticeAttemptCreate(BaseModel):
     trainingGoal: Optional[str] = Field(default=None, max_length=40)
     exerciseFormat: Optional[str] = Field(default=None, max_length=40)
     audioEffect: Optional[str] = Field(default=None, max_length=40)
-    repeatCount: Optional[int] = Field(default=None, ge=1, le=3)
+    repeatCount: Optional[int] = Field(default=None, ge=1, le=10)
     groupSize: Optional[int] = Field(default=None, ge=1, le=8)
     strictSpacing: Optional[bool] = None
-    timedMinutes: Optional[int] = Field(default=None, ge=0, le=5)
+    timedMinutes: Optional[int] = Field(default=None, ge=0, le=30)
     playCount: Optional[int] = Field(default=None, ge=1, le=100)
     revealedBeforeCheck: Optional[bool] = None
     sessionId: Optional[str] = Field(default=None, max_length=80)

@@ -7,7 +7,7 @@ import { CwCheatSheetComponent } from './cw-cheat-sheet/cw-cheat-sheet.component
 import { standardCq, standardExchange } from './cw-protocol';
 import { AF0FR_PHASES, AF0FR_SPEEDS, MethodPosition, MethodSpeed, MethodVoiceOptions, MethodPlaybackStep, DEFAULT_METHOD_VOICE_OPTIONS, METHOD_PAUSE_SECONDS, buildMethodSteps, nextMethodPosition, previousMethodPosition } from './af0fr-method';
 
-type PracticeMode = 'letters' | 'numbers' | 'lettersNumbers' | 'mixed' | 'callsigns' | 'qsoWords' | 'qso';
+type PracticeMode = 'letters' | 'numbers' | 'lettersNumbers' | 'mixed' | 'callsigns' | 'qsoWords' | 'englishWords' | 'englishQsoWords' | 'qso';
 type TrainingGoal = 'learn' | 'speed' | 'accuracy' | 'weaknesses' | 'qso';
 type ExerciseFormat = 'groups' | 'continuous' | 'instant' | 'guidedQso' | 'simulatedQso';
 type WorkspaceView = CwWorkspaceView;
@@ -37,7 +37,7 @@ interface CopyResult {
     detail: string;
     wpm: number;
     farnsworthWpm: number;
-    effectiveCopyWpm: number;
+    effectiveCopyWpm: number | null;
 }
 
 interface StationProfile {
@@ -460,14 +460,25 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     private wordHistory: GeneratedExercise[] = [];
     wordHistoryIndex = -1;
     private advanceTimer: number | null = null;
+    private instantPromptStartedAt: number | null = null;
+    private instantCopySeconds = 0;
+    private instantCorrectCharacters = 0;
     listeningOnly = false;
     contentTagsHidden = false;
     previewExercise: GeneratedExercise = { text: '', context: '' };
     private baseTagTimings: { index: number; start: number; end: number }[] = [];
     private tagTimings: { index: number; start: number; end: number }[] = [];
 
+    get isWordMode(): boolean {
+        return this.mode === 'qsoWords' || this.mode === 'englishWords' || this.mode === 'englishQsoWords';
+    }
+
+    get usesQsoVocabulary(): boolean {
+        return this.mode === 'qsoWords' || this.mode === 'englishQsoWords';
+    }
+
     private get usesWordTags(): boolean {
-        return this.mode === 'qsoWords' || this.mode === 'qso'
+        return this.isWordMode || this.mode === 'qso'
             || (this.mode === 'letters' && this.letterDrill === 'combinations' && !this.instantCharacters);
     }
 
@@ -483,7 +494,12 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
 
     get contentTags(): string[] {
         if (this.methodActive) return [...this.methodPhase.elements];
-        if (this.mode === 'qsoWords') return [...new Set(this.wordCategory === 'all' ? Object.values(this.vocabulary).flat() : this.vocabulary[this.wordCategory])].sort();
+        if (this.mode === 'englishWords') return [...this.commonEnglishWords].sort();
+        if (this.usesQsoVocabulary) {
+            const qsoWords = this.wordCategory === 'all' ? Object.values(this.vocabulary).flat() : this.vocabulary[this.wordCategory];
+            const words = this.mode === 'englishQsoWords' ? [...this.commonEnglishWords, ...qsoWords] : qsoWords;
+            return [...new Set(words)].sort();
+        }
         if (this.mode === 'letters' && this.usesWordTags) return [...new Set(this.commonCombinations)].sort();
         if (this.mode === 'qso') return [...new Set((this.exercise || this.previewExercise.text).split(/\s+/).filter(Boolean))].sort();
         let pool = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -506,6 +522,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     startExercise(listeningOnly = false): void {
+        this.clearSession();
         if (this.methodActive) {
             this.contentTagsHidden = false;
             this.loadMethodElement();
@@ -556,6 +573,8 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         { value: 'lettersNumbers', label: 'Letters + Numbers', description: 'A–Z and 0–9 character groups' },
         { value: 'callsigns', label: 'Callsigns', description: 'Realistic amateur call patterns' },
         { value: 'qsoWords', label: 'QSO Words', description: 'Prosigns, Q signals, and abbreviations' },
+        { value: 'englishWords', label: 'Common English', description: 'Everyday English words' },
+        { value: 'englishQsoWords', label: 'Common English + QSO Words', description: 'Everyday words, prosigns, Q signals, and abbreviations' },
     ];
 
     readonly trainingGoals: { value: TrainingGoal; label: string; description: string }[] = [
@@ -627,6 +646,25 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         { value: 'abbreviations', label: 'Abbreviations' },
         { value: 'recovery', label: 'Recovery' },
         { value: 'ragchew', label: 'Rag chew' },
+    ];
+
+    private readonly commonEnglishWords = [
+        'ABOUT', 'AFTER', 'AGAIN', 'ALL', 'ALSO', 'ALWAYS', 'AND', 'ANOTHER', 'ANY', 'AROUND', 'AT', 'AWAY',
+        'BACK', 'BE', 'BECAUSE', 'BEFORE', 'BEST', 'BETTER', 'BIG', 'BOTH', 'BRING', 'BUT', 'BY',
+        'CAN', 'CHANGE', 'COME', 'COULD', 'DAY', 'DID', 'DIFFERENT', 'DO', 'DOWN', 'EACH', 'EARLY', 'END',
+        'EVEN', 'EVERY', 'FEEL', 'FEW', 'FIND', 'FIRST', 'FOLLOW', 'FOR', 'FRIEND', 'FROM', 'GET', 'GIVE',
+        'GO', 'GOOD', 'GREAT', 'GROUP', 'HAD', 'HAND', 'HAVE', 'HE', 'HELP', 'HER', 'HERE', 'HIGH', 'HIM',
+        'HIS', 'HOME', 'HOW', 'IF', 'IN', 'INTO', 'IS', 'IT', 'JUST', 'KEEP', 'KNOW', 'LAST', 'LATER',
+        'LEARN', 'LEAVE', 'LEFT', 'LET', 'LIFE', 'LIGHT', 'LIKE', 'LINE', 'LITTLE', 'LONG', 'LOOK', 'MADE',
+        'MAKE', 'MANY', 'MAY', 'ME', 'MEAN', 'MORE', 'MOST', 'MOVE', 'MUCH', 'MY', 'NEED', 'NEVER', 'NEW',
+        'NEXT', 'NIGHT', 'NO', 'NOW', 'NUMBER', 'OF', 'OFF', 'OLD', 'ON', 'ONE', 'ONLY', 'OPEN', 'OR',
+        'OTHER', 'OUR', 'OUT', 'OVER', 'PART', 'PEOPLE', 'PLACE', 'PLAY', 'POINT', 'PUT', 'READ', 'RIGHT',
+        'ROOM', 'SAID', 'SAME', 'SAY', 'SEE', 'SET', 'SHE', 'SHOW', 'SMALL', 'SO', 'SOME', 'SOUND', 'START',
+        'STILL', 'STOP', 'SUCH', 'TAKE', 'TELL', 'THAN', 'THAT', 'THE', 'THEIR', 'THEM', 'THEN', 'THERE',
+        'THESE', 'THEY', 'THING', 'THINK', 'THIS', 'THOSE', 'THREE', 'THROUGH', 'TIME', 'TO', 'TODAY', 'TOGETHER',
+        'TOO', 'TRY', 'TURN', 'TWO', 'UNDER', 'UNTIL', 'UP', 'US', 'USE', 'VERY', 'WANT', 'WAS', 'WATER',
+        'WAY', 'WE', 'WELL', 'WENT', 'WERE', 'WHAT', 'WHEN', 'WHERE', 'WHICH', 'WHILE', 'WHO', 'WHY', 'WILL',
+        'WITH', 'WORD', 'WORK', 'WORLD', 'WOULD', 'WRITE', 'YEAR', 'YOU', 'YOUR',
     ];
 
     readonly vocabulary: Record<Exclude<WordCategory, 'all'>, readonly string[]> = {
@@ -838,6 +876,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
 
     private readonly joinedProsigns = new Set(['AR', 'AS', 'BT', 'KN', 'SK']);
     private readonly audioPaddingSeconds = 1;
+    private readonly instantCopyTimeoutSeconds = 6;
 
     constructor(private http: HttpClient, private zone: NgZone) {
         this.initializeOperatorState();
@@ -860,7 +899,22 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     get effectiveCopyWpm(): number {
+        if (this.isInstantCopy) return this.copyRate(this.instantCorrectCharacters, this.instantCopySeconds);
         return Math.round(this.farnsworthWpm * this.accuracy) / 100;
+    }
+
+    get isInstantCopy(): boolean {
+        return !this.methodActive && this.isBasicMode && this.instantCharacters;
+    }
+
+    get isInstantCharacterPlaying(): boolean {
+        if (!this.isPlaying || !this.audioContext) return false;
+        const position = this.audioContext.currentTime - this.playbackStartedAt + this.playbackOffset;
+        return position >= this.countdownSeconds && position < this.playbackDuration;
+    }
+
+    private copyRate(correctCharacters: number, seconds: number): number {
+        return seconds > 0 ? this.roundMetric(correctCharacters * 60 / (5 * seconds)) : 0;
     }
 
     get sessionProgressPercent(): number {
@@ -933,7 +987,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
 
     get sessionLengthLabel(): string {
         if (this.methodActive) return `${this.methodPhase.elements.length} elements · ${this.methodPhasePasses} phase pass${this.methodPhasePasses === 1 ? '' : 'es'}`;
-        if (this.mode === 'qsoWords') return 'Continuous words';
+        if (this.isWordMode) return 'Continuous words';
         if (this.exerciseFormat === 'instant') return 'One character at a time';
         if (this.exerciseFormat === 'continuous') return `${this.timedMinutes}-minute stream`;
         if (this.mode === 'qso') return this.qsoStages.find((stage) => stage.value === this.qsoStage)?.label ?? 'QSO exchange';
@@ -1125,7 +1179,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     get availableExerciseFormats(): { value: ExerciseFormat; label: string }[] {
-        if (this.mode === 'qsoWords') return this.exerciseFormats.filter((format) => format.value === 'continuous');
+        if (this.isWordMode) return this.exerciseFormats.filter((format) => format.value === 'continuous');
         if (this.mode === 'qso') return this.exerciseFormats.filter((format) => format.value === 'guidedQso' || format.value === 'simulatedQso');
         if (this.isBasicMode) return this.exerciseFormats.filter((format) => format.value === 'groups' || format.value === 'continuous' || format.value === 'instant');
         return this.exerciseFormats.filter((format) => format.value === 'groups');
@@ -1176,16 +1230,16 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     get poolQsoDefinitions(): QsoDefinition[] {
-        if (this.mode !== 'qsoWords') return [];
+        if (!this.usesQsoVocabulary) return [];
         return [...this.contentTags].sort()
             .filter((token) => Boolean(this.qsoGlossary[token]))
             .map((token) => ({ token, ...this.qsoGlossary[token] }));
     }
 
     get activeQsoDefinitions(): QsoDefinition[] {
-        if (this.mode !== 'qso' && this.mode !== 'qsoWords') return [];
+        if (this.mode !== 'qso' && !this.usesQsoVocabulary) return [];
         const exerciseTokens = this.exercise.split(/\s+/).filter(Boolean);
-        const tokens = this.mode === 'qsoWords' ? exerciseTokens : [...new Set(exerciseTokens)];
+        const tokens = this.isWordMode ? exerciseTokens : [...new Set(exerciseTokens)];
         return tokens
             .filter((token) => Boolean(this.qsoGlossary[token]))
             .map((token) => ({ token, ...this.qsoGlossary[token] }));
@@ -1236,11 +1290,11 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     selectContent(mode: PracticeMode): void {
         this.scheduleUiStateSave();
         this.mode = mode === 'mixed' ? 'lettersNumbers' : mode === 'qso' ? 'qsoWords' : mode;
-        if (this.mode === 'qsoWords' || !this.availableExerciseFormats.some((format) => format.value === this.exerciseFormat)) {
+        if (this.isWordMode || !this.availableExerciseFormats.some((format) => format.value === this.exerciseFormat)) {
             this.applyExerciseFormat('groups');
         }
-        if (this.mode !== 'qsoWords') this.repeatCount = Math.min(3, this.repeatCount);
-        if (this.mode !== 'qsoWords' && this.exerciseFormat === 'continuous' && !this.timedMinutes) this.applyExerciseFormat('continuous');
+        if (!this.isWordMode) this.repeatCount = Math.min(3, this.repeatCount);
+        if (!this.isWordMode && this.exerciseFormat === 'continuous' && !this.timedMinutes) this.applyExerciseFormat('continuous');
         if (mode === 'letters' && this.letterDrill === 'custom' && !/[A-Z]/.test(this.customCharacters)) this.letterDrill = 'random';
         this.resetExercise();
     }
@@ -1330,7 +1384,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         const ranges = {
             wpm: [5, 40], farnsworthWpm: [5, this.wpm], tone: [350, 900],
             groupSize: [1, 8], groupCount: [1, 10], kochLevel: [2, 26],
-            repeatCount: [1, this.mode === 'qsoWords' ? 10 : 3], countdownSeconds: [0, 5], timedMinutes: [0, 5],
+            repeatCount: [1, this.isWordMode ? 10 : 3], countdownSeconds: [0, 5], timedMinutes: [0, 30],
             mixedLetterPercent: [0, 100],
             sessionTargetAttempts: [5, 25],
         } as const;
@@ -1357,7 +1411,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         }
         this.stop();
         let generated: GeneratedExercise;
-        if (this.mode === 'qsoWords') {
+        if (this.isWordMode) {
             this.wordHistoryIndex += 1;
             generated = this.wordHistory[this.wordHistoryIndex]
                 ?? (!this.exercise && this.previewExercise.text ? this.previewExercise : this.generateExercise());
@@ -1366,6 +1420,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
             generated = !this.exercise && this.previewExercise.text ? this.previewExercise : this.generateExercise();
         }
         this.exercise = generated.text;
+        this.instantPromptStartedAt = null;
         this.exerciseContext = generated.context;
         this.copy = '';
         this.hasChecked = false;
@@ -1380,7 +1435,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     previousWord(): void {
-        if (this.mode !== 'qsoWords' || this.wordHistoryIndex <= 0) return;
+        if (!this.isWordMode || this.wordHistoryIndex <= 0) return;
         this.wordHistoryIndex -= 2;
         this.newExercise();
     }
@@ -1419,6 +1474,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
 
         const events = this.timeline.length ? this.timeline : this.buildTimeline();
         const context = this.audioContext;
+        if (this.isInstantCopy && !this.listeningOnly && !this.hasChecked) this.instantPromptStartedAt ??= context.currentTime;
         const startAt = context.currentTime + 0.05;
         const offset = this.playbackPosition;
         const effect = this.methodActive ? 'clean' : this.audioEffect;
@@ -1456,7 +1512,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         this.playbackOffset = offset;
         this.isPlaying = true;
         this.isPaused = false;
-        this.progressTimer = window.setInterval(() => this.updatePlaybackPosition(), 100);
+        this.progressTimer = window.setInterval(() => this.updatePlaybackPosition(), this.isInstantCopy ? 25 : 100);
         this.playbackTimer = window.setTimeout(() => this.finishPlayback(), Math.max(0, (this.playbackDuration - offset + 0.1) * 1000));
     }
 
@@ -1489,7 +1545,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     onCopyInput(value: string): void {
         this.copy = value.toUpperCase();
         this.hasChecked = false;
-        if (this.isBasicMode && this.instantCharacters && this.copy.trim().length === 1) {
+        if (this.isInstantCopy && this.copy.trim().length === 1) {
             window.setTimeout(() => this.checkCopy(), 0);
         }
     }
@@ -1501,7 +1557,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     checkCopy(): void {
-        if (this.listeningOnly || !this.exercise || !this.copy.trim()) return;
+        if (this.listeningOnly || !this.exercise || !this.copy.trim() || this.hasChecked) return;
         const revealedBeforeCheck = this.answerRevealed;
         this.clearPlayback(false);
         this.playbackPosition = this.playbackDuration;
@@ -1510,6 +1566,16 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         const comparison = this.alignCharacters(expected, copied);
         const denominator = Math.max(expected.length, copied.length, 1);
         const exerciseAccuracy = Math.round((comparison.correct / denominator) * 100);
+        let instantCopySeconds = 0;
+        if (this.isInstantCopy && this.instantPromptStartedAt !== null && this.audioContext) {
+            const elapsed = this.audioContext.currentTime - this.instantPromptStartedAt;
+            if (elapsed < this.instantCopyTimeoutSeconds) {
+                instantCopySeconds = Math.max(this.playbackDuration, elapsed);
+                this.instantCopySeconds += instantCopySeconds;
+                this.instantCorrectCharacters += comparison.correct;
+            }
+        }
+        this.instantPromptStartedAt = null;
 
         this.expectedMarks = comparison.expected;
         this.copyMarks = comparison.copied;
@@ -1527,44 +1593,37 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
             accuracy: exerciseAccuracy,
             correct: exerciseAccuracy === 100,
             mode: this.modes.find((item) => item.value === this.mode)?.label ?? this.mode,
-            detail: this.mode === 'qso' ? this.qsoStages.find((item) => item.value === this.qsoStage)?.label ?? '' : this.mode === 'qsoWords' ? this.wordCategories.find((item) => item.value === this.wordCategory)?.label ?? '' : '',
+            detail: this.mode === 'qso' ? this.qsoStages.find((item) => item.value === this.qsoStage)?.label ?? '' : this.usesQsoVocabulary ? this.wordCategories.find((item) => item.value === this.wordCategory)?.label ?? '' : '',
             wpm: this.wpm,
             farnsworthWpm: this.farnsworthWpm,
-            effectiveCopyWpm: Math.round(this.farnsworthWpm * exerciseAccuracy) / 100,
+            effectiveCopyWpm: this.isInstantCopy
+                ? instantCopySeconds > 0 ? this.copyRate(comparison.correct, instantCopySeconds) : null
+                : Math.round(this.farnsworthWpm * exerciseAccuracy) / 100,
         }, ...this.results];
         this.savePracticeMetric(exerciseAccuracy, comparison.correct, denominator, comparison.confusions, revealedBeforeCheck);
         if (this.adaptiveSpeed && this.isBasicMode) this.adjustAdaptiveSpeed(exerciseAccuracy);
-        if ((this.instantCharacters && this.isBasicMode) || this.mode === 'qsoWords') {
+        if (this.isInstantCopy || this.isWordMode) {
             const checkedExercise = this.exercise;
             this.advanceTimer = window.setTimeout(() => {
                 if (!this.listeningOnly && this.hasChecked && this.exercise === checkedExercise) this.newExercise();
-            }, 700);
+            }, this.isInstantCopy ? 150 : 700);
         }
     }
 
     resetSession(): void {
-        this.stop();
-        this.exercise = '';
-        this.methodComplete = false;
-        this.wordHistory = [];
-        this.wordHistoryIndex = -1;
-        this.exerciseContext = '';
-        this.listeningOnly = false;
-        this.contentTagsHidden = false;
-        this.previewExercise = this.generateExercise();
-        if (this.methodActive) this.prepareMethodTimeline();
-        this.copy = '';
-        this.hasChecked = false;
-        this.answerRevealed = false;
-        this.revealedGroupCount = 0;
-        this.expectedMarks = [];
-        this.copyMarks = [];
+        this.clearSession();
+        this.showToast('Session reset', 'info');
+    }
+
+    private clearSession(): void {
+        this.resetExercise();
+        this.instantCopySeconds = 0;
+        this.instantCorrectCharacters = 0;
         this.correctCharacters = 0;
         this.totalCharacters = 0;
         this.attempts = 0;
         this.results = [];
         this.sessionId = this.createSessionId();
-        this.showToast('Session reset', 'info');
     }
 
     confirmResetSession(): void {
@@ -1622,6 +1681,10 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
             }
         }
         const target = event.target as HTMLElement;
+        if (target === this.copyInput?.nativeElement) {
+            this.handleCopyShortcut(event);
+            return;
+        }
         const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
         const isInteractive = isTyping || ['BUTTON', 'A'].includes(target.tagName);
         if (isInteractive) {
@@ -1636,6 +1699,19 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         }
     }
 
+    private handleCopyShortcut(event: KeyboardEvent): void {
+        if (event.defaultPrevented || event.isComposing || event.key !== 'Enter') return;
+        event.preventDefault();
+        if (event.repeat) return;
+
+        if (event.shiftKey) {
+            this.stop();
+            this.play();
+        } else {
+            this.checkCopy();
+        }
+    }
+
     ngOnDestroy(): void {
         this.stop();
         if (this.toastTimer !== null) window.clearTimeout(this.toastTimer);
@@ -1644,6 +1720,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
 
     private resetExercise(): void {
         this.stop();
+        this.instantPromptStartedAt = null;
         this.exercise = '';
         this.methodComplete = false;
         this.wordHistory = [];
@@ -1662,7 +1739,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     private applyExerciseFormat(format: ExerciseFormat): void {
-        if (this.mode === 'qsoWords') {
+        if (this.isWordMode) {
             this.exerciseFormat = 'continuous';
             this.instantCharacters = false;
             this.timedMinutes = 0;
@@ -1692,7 +1769,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         if (this.methodActive) return { text: this.methodPhase.elements[this.methodPosition.element], context: `AF0FR Method · Phase ${this.methodPosition.phase + 1}` };
         let generated: GeneratedExercise;
         if (this.mode === 'callsigns') generated = { text: Array.from({ length: this.groupCount }, () => this.randomCallsign()).join(' '), context: 'Copy the callsigns' };
-        else if (this.mode === 'qsoWords') generated = { text: this.generateQsoWords(), context: `${this.wordCategories.find((item) => item.value === this.wordCategory)?.label} drill` };
+        else if (this.isWordMode) generated = { text: this.generateWord(), context: this.usesQsoVocabulary ? `${this.wordCategories.find((item) => item.value === this.wordCategory)?.label} drill` : 'Common English drill' };
         else if (this.mode === 'qso') generated = this.randomQsoOver();
         else if (this.mode === 'letters') generated = this.generateLetterExercise();
         else if (this.mode === 'numbers') generated = this.generateNumberExercise();
@@ -1786,7 +1863,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         return { text, context: this.mixedDrill === 'custom' ? `Custom set: ${pool}` : `Random mixed groups: ${this.mixedLetterPercent}% letters` };
     }
 
-    private generateQsoWords(): string {
+    private generateWord(): string {
         const pool = this.contentTags;
         const candidates = pool.filter((word) => word !== this.exercise);
         return this.pickItem(candidates.length ? candidates : pool);
@@ -1859,11 +1936,12 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
 
         this.timeline = [];
         this.tagTimings = [];
+        const padding = this.isInstantCopy ? 0 : this.audioPaddingSeconds;
 
         for (let repetition = 0; repetition < this.repeatCount; repetition += 1) {
             const offset =
                 this.countdownSeconds
-                + this.audioPaddingSeconds
+                + padding
                 + repetition * (baseDuration + 1);
 
             this.tagTimings.push(...this.baseTagTimings.map((tag) => ({ ...tag, start: tag.start + offset, end: tag.end + offset })));
@@ -1880,7 +1958,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
             : 0;
 
         this.playbackDuration = this.timeline.length
-            ? lastToneEnd + this.audioPaddingSeconds
+            ? lastToneEnd + padding
             : 0;
 
         this.playbackPosition = 0;
@@ -2006,7 +2084,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
 
         words.forEach((word, wordIndex) => {
             const tagStart = cursor;
-            const joined = (this.mode === 'qso' || this.mode === 'qsoWords') && this.joinedProsigns.has(word);
+            const joined = (this.mode === 'qso' || this.usesQsoVocabulary) && this.joinedProsigns.has(word);
             const characters = word.split('').filter((character) => Boolean(this.morse[character]));
             const patterns = joined
                 ? [word.split('').map((character) => this.morse[character] ?? '').join('')]
@@ -2060,7 +2138,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
             this.finishMethodStep();
             return;
         }
-        if (this.mode === 'qsoWords' && this.listeningOnly) {
+        if (this.isWordMode && this.listeningOnly) {
             this.newExercise();
             return;
         }
@@ -2090,7 +2168,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     private alignCharacters(expected: string, copied: string): { expected: CharacterMark[]; copied: CharacterMark[]; correct: number; confusions: Record<string, number> } {
         const rows = expected.length + 1;
         const columns = copied.length + 1;
-        const matrix = Array.from({ length: rows }, () => Array<number>(columns).fill(0));
+        const matrix = Array.from({ length: rows }, () => new Uint32Array(columns));
         for (let row = 0; row < rows; row += 1) matrix[row][0] = row;
         for (let column = 0; column < columns; column += 1) matrix[0][column] = column;
         for (let row = 1; row < rows; row += 1) {
@@ -2132,7 +2210,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
     }
 
     private trackWeakWords(): void {
-        if (this.mode !== 'qsoWords') return;
+        if (!this.isWordMode) return;
         const expectedWords = this.exercise.split(/\s+/);
         const copiedWords = this.normalize(this.copy).split(/\s+/);
         expectedWords.forEach((word) => {
@@ -2661,7 +2739,9 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         if (ui.qsoStage) this.qsoStage = ui.qsoStage;
         if (ui.wordCategory) this.wordCategory = ui.wordCategory;
         if (ui.settingsSections) this.settingsSections = { ...this.settingsSections, ...ui.settingsSections };
-        if (this.mode === 'qsoWords' || !this.availableExerciseFormats.some((format) => format.value === this.exerciseFormat)) this.applyExerciseFormat('groups');
+        if (this.isWordMode || !this.availableExerciseFormats.some((format) => format.value === this.exerciseFormat)) this.applyExerciseFormat('groups');
+        else if (this.exerciseFormat === 'instant') this.applyExerciseFormat('instant');
+        else this.instantCharacters = false;
     }
 
     private migrateLegacyOperatorState(operator: string): void {
@@ -2844,7 +2924,7 @@ export class Af0frCwQsoPage implements OnInit, OnDestroy {
         if (this.mode === 'numbers') return this.numberDrill;
         if (this.mode === 'lettersNumbers') return 'random';
         if (this.mode === 'mixed') return this.mixedDrill;
-        if (this.mode === 'qsoWords') return this.wordCategory;
+        if (this.usesQsoVocabulary) return this.wordCategory;
         if (this.mode === 'qso') return this.qsoStage;
         return 'callsigns';
     }

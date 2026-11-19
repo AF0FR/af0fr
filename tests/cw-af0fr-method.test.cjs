@@ -70,6 +70,121 @@ function createPage() {
 }
 
 const settle = () => new Promise(resolve => setImmediate(resolve));
+
+test('restoring Instant characters plays a single character and keeps timed streams intact', () => {
+    const { page } = createPage();
+    const { page: restored } = createPage();
+    page.selectExerciseFormat('instant');
+    restored.applyUiState(page.currentUiState());
+    restored.startExercise();
+    assert.equal(restored.isInstantCopy, true);
+    assert.equal(restored.exercise.length, 1);
+    assert.equal(restored.repeatCount, 1);
+
+    page.selectExerciseFormat('continuous');
+    page.updateNumber('timedMinutes', '30');
+    restored.applyUiState(page.currentUiState());
+    assert.equal(restored.isInstantCopy, false);
+    assert.equal(restored.exerciseFormat, 'continuous');
+    assert.equal(restored.timedMinutes, 30);
+});
+
+test('starting a session resets progress and instant copy measures response speed', () => {
+    const { page, timers } = createPage();
+    page.savePracticeMetric = () => {};
+    page.selectExerciseFormat('instant');
+    page.startExercise();
+    const sessionId = page.sessionId;
+    assert.ok(page.playbackDuration < 1);
+    assert.equal(page.isInstantCharacterPlaying, false);
+    page.audioContext.currentTime = page.playbackStartedAt + page.playbackDuration / 2;
+    assert.equal(page.isInstantCharacterPlaying, true);
+
+    page.audioContext.currentTime = 2;
+    assert.equal(page.isInstantCharacterPlaying, false);
+    page.copy = page.exercise;
+    page.checkCopy();
+    assert.equal(page.effectiveCopyWpm, 6);
+    assert.equal(page.attempts, 1);
+    assert.ok(page.sessionProgressPercent > 0);
+
+    timers.get(page.advanceTimer)();
+    page.audioContext.currentTime = 4;
+    page.copy = '?';
+    page.checkCopy();
+    assert.equal(page.effectiveCopyWpm, 3);
+    assert.equal(page.sessionId, sessionId);
+
+    timers.get(page.advanceTimer)();
+    page.audioContext.currentTime = 10;
+    page.copy = page.exercise;
+    page.checkCopy();
+    assert.equal(page.effectiveCopyWpm, 3);
+    assert.equal(page.results[0].effectiveCopyWpm, null);
+    assert.equal(page.attempts, 3);
+    assert.equal(page.correctCharacters, 2);
+
+    page.startExercise();
+    assert.equal(page.sessionProgressPercent, 0);
+    assert.equal(page.effectiveCopyWpm, 0);
+    assert.equal(page.results.length, 0);
+    assert.notEqual(page.sessionId, sessionId);
+});
+
+test('copy shortcuts check on Enter and replay on Shift+Enter', () => {
+    const { page } = createPage();
+    const textarea = { tagName: 'TEXTAREA' };
+    page.copyInput = { nativeElement: textarea };
+    const actions = [];
+    page.checkCopy = () => actions.push('check');
+    page.stop = () => actions.push('stop');
+    page.play = () => actions.push('play');
+    const press = (key, options = {}) => {
+        let prevented = false;
+        page.handleKeyboard({ key, target: textarea, preventDefault: () => { prevented = true; }, ...options });
+        return prevented;
+    };
+
+    assert.equal(press('Enter'), true);
+    assert.equal(press('Enter', { repeat: true }), true);
+    assert.equal(press(' '), false);
+    assert.equal(press(' '), false);
+    assert.equal(press('Enter', { shiftKey: true }), true);
+    assert.equal(press('Enter', { isComposing: true }), false);
+    assert.deepEqual(actions, ['check', 'stop', 'play']);
+});
+
+test('English word modes use the selected pool and advance in listening practice', async () => {
+    const h = createPage();
+    const { page } = h;
+    page.selectContent('englishWords');
+    assert.ok(page.contentTags.includes('FRIEND'));
+    assert.ok(!page.contentTags.includes('QRS'));
+    assert.equal(page.exerciseFormat, 'continuous');
+    assert.equal(page.timedMinutes, 0);
+
+    page.selectContent('englishQsoWords');
+    page.selectWordCategory('qsignals');
+    assert.ok(page.contentTags.includes('FRIEND'));
+    assert.ok(page.contentTags.includes('QRS'));
+    assert.ok(!page.contentTags.includes('SK'));
+    page.updateNumber('repeatCount', '5');
+    assert.equal(page.repeatCount, 5);
+    page.startExercise(true);
+    const firstWord = page.exercise;
+    assert.ok(page.contentTags.includes(firstWord));
+    await finishStep(h);
+    assert.equal(page.wordHistoryIndex, 1);
+    assert.ok(page.contentTags.includes(page.exercise));
+    assert.notEqual(page.exercise, firstWord);
+    page.previousWord();
+    assert.equal(page.exercise, firstWord);
+
+    page.selectContent('qsoWords');
+    assert.ok(page.contentTags.includes('QRS'));
+    assert.ok(!page.contentTags.includes('FRIEND'));
+});
+
 async function finishStep({ page, timers }) {
     await settle();
     const callback = timers.get(page.playbackTimer);
